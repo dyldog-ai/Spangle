@@ -5,6 +5,7 @@ import SwiftUI
 @MainActor
 final class GameViewModel: ObservableObject {
     enum Phase: Equatable {
+        case menu
         case intro(level: Int, theme: Theme)
         case playing
         case quiz(word: VocabWord, options: [String])
@@ -29,12 +30,21 @@ final class GameViewModel: ObservableObject {
         scene = GameScene(size: CGSize(width: 1024, height: 576))
         scene.scaleMode = .resizeFill
         let first = Campaign.themes[0]
-        phase = .intro(level: 1, theme: first)
+        phase = .menu
         scene.game = self
         scene.load(words: first.words, difficulty: .forLevel(0))
     }
 
     // MARK: - Progression
+
+    /// Pick a level from the main menu.
+    func selectLevel(_ index: Int) {
+        loadLevel(index)
+    }
+
+    func goToMenu() {
+        phase = .menu
+    }
 
     private func loadLevel(_ index: Int) {
         levelIndex = index

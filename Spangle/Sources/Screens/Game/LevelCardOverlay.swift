@@ -8,6 +8,7 @@ struct LevelCardOverlay: View {
     let subtitle: String  // English theme name / message
     let button: String
     let action: () -> Void
+    var secondary: (label: String, action: () -> Void)? = nil
 
     var body: some View {
         ZStack {
@@ -28,6 +29,10 @@ struct LevelCardOverlay: View {
                     .font(.title3.bold())
                     .buttonStyle(.borderedProminent)
                     .padding(.top, 8)
+                if let secondary {
+                    Button(secondary.label, action: secondary.action)
+                        .font(.body)
+                }
             }
             .padding(32)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24))

@@ -9,8 +9,10 @@ struct GameView: View {
             SpriteView(scene: model.scene)
                 .ignoresSafeArea()
 
-            hud
-            toast
+            if model.phase != .menu {
+                hud
+                toast
+            }
             overlay
         }
         #if os(macOS)
@@ -59,26 +61,31 @@ struct GameView: View {
 
     @ViewBuilder private var overlay: some View {
         switch model.phase {
+        case .menu:
+            MenuView(themes: Campaign.themes) { model.selectLevel($0) }
         case .playing:
             EmptyView()
         case let .intro(level, theme):
             LevelCardOverlay(emoji: theme.emoji, eyebrow: "Nivel \(level)",
                              title: theme.name, subtitle: theme.english,
-                             button: "¡Vamos!") { model.startLevel() }
+                             button: "¡Vamos!", action: { model.startLevel() },
+                             secondary: ("Menu", { model.goToMenu() }))
         case let .quiz(word, options):
             QuizOverlay(word: word, options: options) { model.answer($0) }
         case let .gameOver(reason):
             MessageOverlay(title: "¡Ay!", message: reason,
-                           button: "Try again") { model.retry() }
+                           button: "Try again", action: { model.retry() },
+                           secondary: ("Menu", { model.goToMenu() }))
         case let .levelComplete(nextTheme):
             LevelCardOverlay(emoji: "🎉", eyebrow: "¡Nivel completado!",
                              title: "You learned \(model.wordsLearned) words",
                              subtitle: "Next: \(nextTheme.emoji) \(nextTheme.name)",
-                             button: "Next level") { model.nextLevel() }
+                             button: "Next level", action: { model.nextLevel() },
+                             secondary: ("Menu", { model.goToMenu() }))
         case .campaignComplete:
             MessageOverlay(title: "¡Campeón! 🏆",
                            message: "You finished every level. ¡Felicidades!",
-                           button: "Play again") { model.restartCampaign() }
+                           button: "Menu", action: { model.goToMenu() })
         }
     }
 }

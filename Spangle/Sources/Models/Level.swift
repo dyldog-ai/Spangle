@@ -40,25 +40,27 @@ struct Level {
         let chunkCount = max(6, pool.count)
         for i in 0..<chunkCount {
             let segLen = difficulty.segmentLength
+            let isGateChunk = (i % 3 == 2)
             let seg = GroundSegment(startX: x, endX: x + segLen)
             segments.append(seg)
 
-            // One or two spikes partway along the segment. A double pair sits
-            // close together so a single well-timed jump clears both.
-            items.append(.spike(x: x + segLen * 0.55))
-            if difficulty.doubleSpikes {
-                items.append(.spike(x: x + segLen * 0.66))
+            if isGateChunk {
+                // No spikes in a gate chunk, and the gate sits mid-segment so
+                // there is a full runway to react to the next gap after the quiz.
+                items.append(.gate(x: x + segLen * 0.5))
+            } else {
+                // One or two spikes partway along the segment. A double pair sits
+                // close together so a single well-timed jump clears both.
+                items.append(.spike(x: x + segLen * 0.55))
+                if difficulty.doubleSpikes {
+                    items.append(.spike(x: x + segLen * 0.66))
+                }
             }
 
-            // A collectible word-coin near the segment start.
+            // A collectible word-coin near the segment start (before any gate).
             let word = pool[wordIndex % pool.count]
             wordIndex += 1
             items.append(.coin(x: x + segLen * 0.28, word: word))
-
-            // A quiz gate at the end of every third chunk.
-            if i % 3 == 2 {
-                items.append(.gate(x: x + segLen * 0.9))
-            }
 
             x = seg.endX
             x += difficulty.gap // jumpable gap, widens with difficulty

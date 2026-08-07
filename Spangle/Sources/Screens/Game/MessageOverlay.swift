@@ -6,6 +6,7 @@ struct MessageOverlay: View {
     let message: String
     let button: String
     let action: () -> Void
+    var secondary: (label: String, action: () -> Void)? = nil
 
     var body: some View {
         ZStack {
@@ -21,6 +22,10 @@ struct MessageOverlay: View {
                     .font(.title3.bold())
                     .buttonStyle(.borderedProminent)
                     .padding(.top, 8)
+                if let secondary {
+                    Button(secondary.label, action: secondary.action)
+                        .font(.body)
+                }
             }
             .padding(32)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24))

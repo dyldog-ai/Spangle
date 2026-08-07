@@ -245,6 +245,11 @@ final class GameScene: SKScene {
             if worldX >= gate.x {
                 gate.passed = true
                 if let word = pendingWord {
+                    // Snap safely onto the ground so resuming never drops the
+                    // player mid-air into the upcoming gap.
+                    playerY = 0
+                    vy = 0
+                    onGround = true
                     active = false
                     game?.presentQuiz(for: word)
                 }
