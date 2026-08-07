@@ -29,7 +29,8 @@ struct MenuView: View {
                         ForEach(Array(themes.enumerated()), id: \.element.id) { index, theme in
                             let locked = index > unlockedThrough
                             Button { onSelect(index) } label: {
-                                LevelTile(number: index + 1, theme: theme, locked: locked)
+                                LevelTile(number: index + 1, theme: theme,
+                                          skin: .forLevel(index), locked: locked)
                             }
                             .buttonStyle(.plain)
                             .disabled(locked)
@@ -47,21 +48,32 @@ struct MenuView: View {
 private struct LevelTile: View {
     let number: Int
     let theme: Theme
+    let skin: Skin
     let locked: Bool
+
+    private var gradient: LinearGradient {
+        LinearGradient(colors: [Color(cgColor: skin.skyTop.cgColor),
+                                Color(cgColor: skin.grass.cgColor)],
+                       startPoint: .top, endPoint: .bottom)
+    }
 
     var body: some View {
         VStack(spacing: 6) {
             Text(locked ? "🔒" : theme.emoji).font(.system(size: 40))
+                .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
             Text("Nivel \(number)")
-                .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                .font(.caption.weight(.bold)).foregroundStyle(.white.opacity(0.9))
             Text(theme.name)
-                .font(.headline).multilineTextAlignment(.center)
+                .font(.headline).foregroundStyle(.white).multilineTextAlignment(.center)
             Text(locked ? "Locked" : theme.english)
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.caption).foregroundStyle(.white.opacity(0.85))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
-        .opacity(locked ? 0.5 : 1)
+        .background(gradient, in: RoundedRectangle(cornerRadius: 18))
+        .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(.white.opacity(0.35), lineWidth: 1))
+        .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+        .saturation(locked ? 0 : 1)
+        .opacity(locked ? 0.55 : 1)
     }
 }

@@ -36,7 +36,7 @@ final class GameViewModel: ObservableObject {
         let first = Campaign.themes[0]
         phase = .menu
         scene.game = self
-        scene.load(words: first.words, difficulty: .forLevel(0))
+        scene.load(words: first.words, difficulty: .forLevel(0), skin: .forLevel(0))
     }
 
     // MARK: - Progression
@@ -56,7 +56,7 @@ final class GameViewModel: ObservableObject {
         wordsLearned = 0
         distance = 0
         toast = nil
-        scene.load(words: theme.words, difficulty: .forLevel(index))
+        scene.load(words: theme.words, difficulty: .forLevel(index), skin: .forLevel(index))
         phase = .intro(level: index + 1, theme: theme)
     }
 

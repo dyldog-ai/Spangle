@@ -26,3 +26,12 @@ xcodebuild build -workspace Spangle.xcworkspace -scheme Spangle -destination "ge
 ## Campaign
 
 12 themed levels progress from easy, cognate-heavy words to longer, abstract vocabulary while the platforming ramps up (faster scroll, wider gaps, shorter platforms, double spikes). Edit `Campaign.themes` to add or reorder levels; difficulty auto-scales via `Difficulty.forLevel(_:)`.
+
+## Graphics
+
+Every level has a custom-drawn visual identity via a `Skin` (palette + parallax
+`Decor` style) rendered by `Scenery`: gradient skies, a sun/moon disc, and
+layered parallax backdrops (rainbow hills, clouds, rain, savanna, forest, town,
+city skyline, night mountains). The player is a vector `PlayerNode` character.
+Menu tiles preview each level's palette. All graphics are procedural — no image
+assets required.

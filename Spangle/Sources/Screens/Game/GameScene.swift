@@ -12,11 +12,12 @@ final class GameScene: SKScene {
     private let jumpVelocity: CGFloat = 1050
     private let maxHold: TimeInterval = 0.18
     private let holdGravityFactor: CGFloat = 0.45
-    private let playerSize: CGFloat = 44
+    private let playerSize: CGFloat = 46
 
     // MARK: World state
     private var words: [VocabWord] = Campaign.themes[0].words
     private var difficulty: Difficulty = .forLevel(0)
+    private var skin: Skin = .forLevel(0)
     private var level = Level.generate(words: Campaign.themes[0].words, difficulty: .forLevel(0))
     private var scroll: CGFloat = 0
     private var playerY: CGFloat = 0   // height above the ground surface
@@ -29,8 +30,12 @@ final class GameScene: SKScene {
     private var pendingWord: VocabWord?
 
     // MARK: Nodes
+    private let sky = SKSpriteNode()
+    private let celestialWrap = SKNode()
+    private var farLayer = SKNode()
+    private var nearLayer = SKNode()
     private let worldNode = SKNode()
-    private let player = SKSpriteNode(color: .systemYellow, size: .zero)
+    private let player = PlayerNode(size: 46)
     private var coins: [CoinNode] = []
     private var gates: [GateNode] = []
     private var spikes: [CGFloat] = []
@@ -55,18 +60,56 @@ final class GameScene: SKScene {
     // MARK: Setup
 
     override func didMove(to view: SKView) {
-        backgroundColor = SKColor(red: 0.53, green: 0.81, blue: 0.98, alpha: 1) // sky
+        guard sky.parent == nil else { return } // build the hierarchy once
+        sky.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+        sky.zPosition = -100
+        addChild(sky)
+
+        celestialWrap.zPosition = -70
+        addChild(celestialWrap)
+
+        farLayer.zPosition = -80
+        nearLayer.zPosition = -60
+        addChild(farLayer)
+        addChild(nearLayer)
+
+        worldNode.zPosition = 0
         addChild(worldNode)
-        player.size = CGSize(width: playerSize, height: playerSize)
+
         player.zPosition = 10
         addChild(player)
+
         rebuild()
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
-        // Reposition the player any time the view resizes (macOS window, rotation).
+        layoutScreen()
+    }
+
+    /// Position full-screen and fixed elements for the current scene size.
+    private func layoutScreen() {
+        sky.size = size
+        sky.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        celestialWrap.position = CGPoint(x: size.width * 0.78, y: size.height * 0.8)
         player.position = CGPoint(x: playerScreenX, y: groundTopY + playerSize / 2 + playerY)
     }
+
+    // MARK: Background
+
+    private func buildBackground() {
+        sky.texture = GradientTexture.vertical(size: CGSize(width: 4, height: 512),
+                                               top: skin.skyTop, bottom: skin.skyBottom)
+        celestialWrap.removeAllChildren()
+        celestialWrap.addChild(Scenery.celestial(skin: skin))
+
+        let layers = Scenery.build(skin: skin, finishX: level.finishX, screenWidth: size.width)
+        farLayer.removeAllChildren()
+        nearLayer.removeAllChildren()
+        for child in layers.far.children { child.removeFromParent(); farLayer.addChild(child) }
+        for child in layers.near.children { child.removeFromParent(); nearLayer.addChild(child) }
+    }
+
+    // MARK: World
 
     private func buildWorld() {
         worldNode.removeAllChildren()
@@ -74,15 +117,8 @@ final class GameScene: SKScene {
         gates.removeAll()
         spikes.removeAll()
 
-        // Ground segments as dark green platforms extending below the surface.
         for seg in level.segments {
-            let w = seg.endX - seg.startX
-            let node = SKSpriteNode(color: SKColor(red: 0.29, green: 0.6, blue: 0.32, alpha: 1),
-                                    size: CGSize(width: w, height: 2000))
-            node.anchorPoint = CGPoint(x: 0, y: 1)
-            node.position = CGPoint(x: seg.startX, y: 0) // y set each frame relative to groundTopY
-            node.name = "ground"
-            worldNode.addChild(node)
+            worldNode.addChild(makeGround(seg))
         }
 
         for item in level.items {
@@ -101,35 +137,76 @@ final class GameScene: SKScene {
             }
         }
 
-        // Finish banner.
-        let finish = SKSpriteNode(color: .systemPurple, size: CGSize(width: 16, height: 260))
-        finish.anchorPoint = CGPoint(x: 0.5, y: 0)
-        finish.name = "finish"
-        finish.position = CGPoint(x: level.finishX, y: 0)
-        worldNode.addChild(finish)
-
+        worldNode.addChild(makeFinish(at: level.finishX))
         layoutWorldHeights()
     }
 
+    /// A ground segment: soil body with a grass strip and a darker lip on top.
+    private func makeGround(_ seg: GroundSegment) -> SKNode {
+        let w = seg.endX - seg.startX
+        let node = SKNode()
+
+        let soil = SKSpriteNode(color: skin.soil, size: CGSize(width: w, height: 2000))
+        soil.anchorPoint = CGPoint(x: 0, y: 1)
+        soil.position = .zero
+        node.addChild(soil)
+
+        let grass = SKSpriteNode(color: skin.grass, size: CGSize(width: w, height: 22))
+        grass.anchorPoint = CGPoint(x: 0, y: 1)
+        grass.position = .zero
+        node.addChild(grass)
+
+        let lip = SKSpriteNode(color: skin.grass.lighter(0.25), size: CGSize(width: w, height: 6))
+        lip.anchorPoint = CGPoint(x: 0, y: 1)
+        lip.position = .zero
+        node.addChild(lip)
+
+        node.position = CGPoint(x: seg.startX, y: 0)
+        node.name = "ground"
+        return node
+    }
+
     private func makeSpike(at x: CGFloat) -> SKNode {
-        let path = CGMutablePath()
-        path.move(to: CGPoint(x: -22, y: 0))
-        path.addLine(to: CGPoint(x: 0, y: 44))
-        path.addLine(to: CGPoint(x: 22, y: 0))
-        path.closeSubpath()
-        let node = SKShapeNode(path: path)
-        node.fillColor = SKColor(red: 0.85, green: 0.2, blue: 0.2, alpha: 1)
-        node.strokeColor = .clear
+        let node = SKNode()
+        let base = skin.accent.darker(0.05)
+        for dx in [-14.0, 14.0] as [CGFloat] {
+            let s = SKShapeNode()
+            let p = CGMutablePath()
+            p.move(to: CGPoint(x: dx - 16, y: 0))
+            p.addLine(to: CGPoint(x: dx, y: 46))
+            p.addLine(to: CGPoint(x: dx + 16, y: 0))
+            p.closeSubpath()
+            s.path = p
+            s.fillColor = SKColor(red: 0.86, green: 0.24, blue: 0.22, alpha: 1)
+            s.strokeColor = base.darker(0.2)
+            s.lineWidth = 2
+            node.addChild(s)
+        }
         node.name = "spike"
-        node.position = CGPoint(x: x, y: 0)
+        node.position = CGPoint(x: x, y: 2)
         return node
     }
 
     private func makeCoin(at x: CGFloat) -> SKNode {
-        let node = SKShapeNode(circleOfRadius: 20)
-        node.fillColor = SKColor(red: 1, green: 0.84, blue: 0.2, alpha: 1)
-        node.strokeColor = SKColor(red: 0.85, green: 0.6, blue: 0.1, alpha: 1)
-        node.lineWidth = 3
+        let node = SKNode()
+        let ring = SKShapeNode(circleOfRadius: 21)
+        ring.fillColor = skin.accent
+        ring.strokeColor = skin.accent.darker(0.2)
+        ring.lineWidth = 3
+        node.addChild(ring)
+
+        let face = SKShapeNode(circleOfRadius: 14)
+        face.fillColor = SKColor(red: 1, green: 0.86, blue: 0.3, alpha: 1)
+        face.strokeColor = .clear
+        node.addChild(face)
+
+        let shine = SKShapeNode(ellipseOf: CGSize(width: 7, height: 10))
+        shine.fillColor = .white
+        shine.strokeColor = .clear
+        shine.alpha = 0.85
+        shine.position = CGPoint(x: -5, y: 5)
+        node.addChild(shine)
+
         node.name = "coin"
         node.position = CGPoint(x: x, y: 0)
         node.run(.repeatForever(.sequence([
@@ -139,17 +216,55 @@ final class GameScene: SKScene {
     }
 
     private func makeGate(at x: CGFloat) -> SKNode {
-        let node = SKSpriteNode(color: SKColor(white: 1, alpha: 0.85),
-                                size: CGSize(width: 10, height: 220))
-        node.anchorPoint = CGPoint(x: 0.5, y: 0)
-        node.name = "gate"
-        node.position = CGPoint(x: x, y: 0)
+        let node = SKNode()
+        let post = SKShapeNode(rectOf: CGSize(width: 12, height: 230), cornerRadius: 6)
+        post.fillColor = SKColor(white: 1, alpha: 0.9)
+        post.strokeColor = skin.accent
+        post.lineWidth = 3
+        post.position = CGPoint(x: 0, y: 115)
+        node.addChild(post)
+
+        let sign = SKShapeNode(circleOfRadius: 30)
+        sign.fillColor = skin.accent
+        sign.strokeColor = .white
+        sign.lineWidth = 3
+        sign.position = CGPoint(x: 0, y: 250)
         let q = SKLabelNode(text: "?")
         q.fontName = "AvenirNext-Bold"
-        q.fontSize = 44
-        q.fontColor = .systemIndigo
-        q.position = CGPoint(x: 0, y: 240)
-        node.addChild(q)
+        q.fontSize = 34
+        q.fontColor = .white
+        q.verticalAlignmentMode = .center
+        sign.addChild(q)
+        sign.run(.repeatForever(.sequence([
+            .rotate(byAngle: 0.12, duration: 0.6), .rotate(byAngle: -0.12, duration: 0.6),
+        ])))
+        node.addChild(sign)
+
+        node.name = "gate"
+        node.position = CGPoint(x: x, y: 0)
+        return node
+    }
+
+    private func makeFinish(at x: CGFloat) -> SKNode {
+        let node = SKNode()
+        let pole = SKSpriteNode(color: SKColor(white: 0.95, alpha: 1),
+                                size: CGSize(width: 8, height: 300))
+        pole.anchorPoint = CGPoint(x: 0.5, y: 0)
+        node.addChild(pole)
+
+        let flag = SKShapeNode()
+        let p = CGMutablePath()
+        p.move(to: CGPoint(x: 4, y: 300))
+        p.addLine(to: CGPoint(x: 90, y: 268))
+        p.addLine(to: CGPoint(x: 4, y: 236))
+        p.closeSubpath()
+        flag.path = p
+        flag.fillColor = skin.accent
+        flag.strokeColor = .clear
+        node.addChild(flag)
+
+        node.name = "finish"
+        node.position = CGPoint(x: x, y: 0)
         return node
     }
 
@@ -157,7 +272,7 @@ final class GameScene: SKScene {
     /// current ground surface every layout so resizing stays correct.
     private func layoutWorldHeights() {
         worldNode.position = CGPoint(x: -scroll, y: groundTopY)
-        for c in coins { c.node.position.y = 90 }
+        for c in coins { c.node.position.y = 96 }
         for g in gates { g.node.position.y = 0 }
     }
 
@@ -213,16 +328,21 @@ final class GameScene: SKScene {
             return
         }
 
-        // Render.
+        render()
+        game?.updateDistance(Int(scroll / 100))
+    }
+
+    private func render() {
         worldNode.position = CGPoint(x: -scroll, y: groundTopY)
+        farLayer.position = CGPoint(x: -scroll * Scenery.farFactor, y: groundTopY)
+        nearLayer.position = CGPoint(x: -scroll * Scenery.nearFactor, y: groundTopY)
         player.position = CGPoint(x: playerScreenX, y: groundTopY + playerSize / 2 + playerY)
         player.zRotation = onGround ? 0 : max(-0.5, -vy / 4000)
-        game?.updateDistance(Int(scroll / 100))
     }
 
     private func checkSpikes(worldX: CGFloat) {
         guard playerY < 40 else { return } // above the spike tips
-        for sx in spikes where abs(sx - worldX) < 22 {
+        for sx in spikes where abs(sx - worldX) < 24 {
             die(reason: "Ouch — spikes!")
             return
         }
@@ -230,7 +350,7 @@ final class GameScene: SKScene {
 
     private func checkCoins(worldX: CGFloat) {
         for c in coins where !c.collected {
-            if abs(c.x - worldX) < 34 && abs(playerY - 90) < 90 {
+            if abs(c.x - worldX) < 34 && abs(playerY - 96) < 96 {
                 c.collected = true
                 c.node.run(.sequence([.group([.scale(to: 1.8, duration: 0.2),
                                               .fadeOut(withDuration: 0.2)]), .removeFromParent()]))
@@ -260,7 +380,7 @@ final class GameScene: SKScene {
     private func die(reason: String) {
         guard active else { return }
         active = false
-        player.color = .systemRed
+        player.flashDead()
         player.run(.sequence([.scale(to: 1.4, duration: 0.1), .scale(to: 0, duration: 0.2)]))
         game?.died(reason: reason)
     }
@@ -268,9 +388,10 @@ final class GameScene: SKScene {
     // MARK: External control
 
     /// Configure the scene for a level and reset it, ready to `begin()`.
-    func load(words: [VocabWord], difficulty: Difficulty) {
+    func load(words: [VocabWord], difficulty: Difficulty, skin: Skin) {
         self.words = words
         self.difficulty = difficulty
+        self.skin = skin
         rebuild()
     }
 
@@ -297,10 +418,10 @@ final class GameScene: SKScene {
         pendingWord = nil
         lastUpdate = 0
         active = false
-        player.color = .systemYellow
-        player.setScale(1)
-        player.zRotation = 0
+        player.setAlive()
+        buildBackground()
         buildWorld()
+        layoutScreen()
     }
 
     /// Retry the same level from the start.
@@ -316,6 +437,7 @@ final class GameScene: SKScene {
         onGround = false
         holding = true
         holdTime = 0
+        player.squashJump()
     }
 
     func jumpEnded() {
