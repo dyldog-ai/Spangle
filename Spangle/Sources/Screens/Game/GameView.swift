@@ -62,7 +62,7 @@ struct GameView: View {
     @ViewBuilder private var overlay: some View {
         switch model.phase {
         case .menu:
-            MenuView(themes: Campaign.themes) { model.selectLevel($0) }
+            MenuView(themes: Campaign.themes, unlockedThrough: model.unlockedThrough) { model.selectLevel($0) }
         case .playing:
             EmptyView()
         case let .intro(level, theme):

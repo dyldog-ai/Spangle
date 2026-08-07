@@ -3,6 +3,7 @@ import SwiftUI
 /// Main menu: title plus a scrollable grid of all levels to pick from.
 struct MenuView: View {
     let themes: [Theme]
+    let unlockedThrough: Int
     let onSelect: (Int) -> Void
 
     private let columns = [GridItem(.adaptive(minimum: 150), spacing: 14)]
@@ -26,10 +27,12 @@ struct MenuView: View {
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 14) {
                         ForEach(Array(themes.enumerated()), id: \.element.id) { index, theme in
+                            let locked = index > unlockedThrough
                             Button { onSelect(index) } label: {
-                                LevelTile(number: index + 1, theme: theme)
+                                LevelTile(number: index + 1, theme: theme, locked: locked)
                             }
                             .buttonStyle(.plain)
+                            .disabled(locked)
                         }
                     }
                     .padding(.horizontal)
@@ -44,19 +47,21 @@ struct MenuView: View {
 private struct LevelTile: View {
     let number: Int
     let theme: Theme
+    let locked: Bool
 
     var body: some View {
         VStack(spacing: 6) {
-            Text(theme.emoji).font(.system(size: 40))
+            Text(locked ? "🔒" : theme.emoji).font(.system(size: 40))
             Text("Nivel \(number)")
                 .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
             Text(theme.name)
                 .font(.headline).multilineTextAlignment(.center)
-            Text(theme.english)
+            Text(locked ? "Locked" : theme.english)
                 .font(.caption).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 16)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .opacity(locked ? 0.5 : 1)
     }
 }

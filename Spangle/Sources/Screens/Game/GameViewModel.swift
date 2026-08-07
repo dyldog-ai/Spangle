@@ -16,6 +16,8 @@ final class GameViewModel: ObservableObject {
 
     @Published private(set) var phase: Phase
     @Published private(set) var levelIndex = 0
+    /// Highest level index the player has unlocked (0 = only the first level).
+    @Published private(set) var unlockedThrough: Int
     @Published private(set) var wordsLearned = 0
     @Published private(set) var distance = 0
     /// A brief translation banner shown when a coin is collected.
@@ -23,12 +25,14 @@ final class GameViewModel: ObservableObject {
 
     let scene: GameScene
 
+    private let unlockKey = "highestUnlockedLevel"
     private var themes: [Theme] { Campaign.themes }
     private var theme: Theme { themes[levelIndex] }
 
     init() {
         scene = GameScene(size: CGSize(width: 1024, height: 576))
         scene.scaleMode = .resizeFill
+        unlockedThrough = UserDefaults.standard.integer(forKey: unlockKey)
         let first = Campaign.themes[0]
         phase = .menu
         scene.game = self
@@ -37,8 +41,9 @@ final class GameViewModel: ObservableObject {
 
     // MARK: - Progression
 
-    /// Pick a level from the main menu.
+    /// Pick a level from the main menu. Ignores locked levels.
     func selectLevel(_ index: Int) {
+        guard index <= unlockedThrough else { return }
         loadLevel(index)
     }
 
@@ -93,8 +98,17 @@ final class GameViewModel: ObservableObject {
     }
 
     func finished() {
+        unlock(levelIndex + 1)
         let next = levelIndex + 1
         phase = next < themes.count ? .levelComplete(nextTheme: themes[next]) : .campaignComplete
+    }
+
+    /// Unlock up to `index`, persisting the highest reached.
+    private func unlock(_ index: Int) {
+        let capped = min(index, themes.count - 1)
+        guard capped > unlockedThrough else { return }
+        unlockedThrough = capped
+        UserDefaults.standard.set(capped, forKey: unlockKey)
     }
 
     // MARK: - Called by the UI
