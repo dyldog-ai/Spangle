@@ -23,4 +23,6 @@ xcodebuild build -workspace Spangle.xcworkspace -scheme Spangle -destination "ge
 - `Spangle/Sources/Models` — `VocabWord`, `Vocabulary` (word list + quiz builder), `Level` (procedural level).
 - `Spangle/Sources/Screens/Game` — `GameScene` (SpriteKit, manual scroller physics), `GameViewModel` (state bridge), `GameView` + overlays (SwiftUI).
 
-Add vocabulary by editing `Vocabulary.all`.
+## Campaign
+
+12 themed levels progress from easy, cognate-heavy words to longer, abstract vocabulary while the platforming ramps up (faster scroll, wider gaps, shorter platforms, double spikes). Edit `Campaign.themes` to add or reorder levels; difficulty auto-scales via `Difficulty.forLevel(_:)`.

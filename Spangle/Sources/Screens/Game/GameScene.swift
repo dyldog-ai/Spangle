@@ -7,7 +7,7 @@ final class GameScene: SKScene {
     weak var game: GameViewModel?
 
     // MARK: Tuning
-    private let worldSpeed: CGFloat = 430
+    private var worldSpeed: CGFloat { difficulty.worldSpeed }
     private let gravity: CGFloat = 2600
     private let jumpVelocity: CGFloat = 1050
     private let maxHold: TimeInterval = 0.18
@@ -15,7 +15,9 @@ final class GameScene: SKScene {
     private let playerSize: CGFloat = 44
 
     // MARK: World state
-    private var level = Level.generate(words: Vocabulary.all)
+    private var words: [VocabWord] = Campaign.themes[0].words
+    private var difficulty: Difficulty = .forLevel(0)
+    private var level = Level.generate(words: Campaign.themes[0].words, difficulty: .forLevel(0))
     private var scroll: CGFloat = 0
     private var playerY: CGFloat = 0   // height above the ground surface
     private var vy: CGFloat = 0
@@ -58,8 +60,7 @@ final class GameScene: SKScene {
         player.size = CGSize(width: playerSize, height: playerSize)
         player.zPosition = 10
         addChild(player)
-        buildWorld()
-        active = true
+        rebuild()
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
@@ -261,13 +262,27 @@ final class GameScene: SKScene {
 
     // MARK: External control
 
+    /// Configure the scene for a level and reset it, ready to `begin()`.
+    func load(words: [VocabWord], difficulty: Difficulty) {
+        self.words = words
+        self.difficulty = difficulty
+        rebuild()
+    }
+
+    /// Start (or resume from the level intro) running the level.
+    func begin() {
+        active = true
+    }
+
     func resumeFromGate() {
         pendingWord = nil
         active = true
     }
 
-    func restart() {
-        level = Level.generate(words: Vocabulary.all)
+    /// Rebuild the current level geometry and reset all player state, leaving
+    /// the scene paused until `begin()` is called.
+    private func rebuild() {
+        level = Level.generate(words: words, difficulty: difficulty)
         scroll = 0
         playerY = 0
         vy = 0
@@ -276,11 +291,16 @@ final class GameScene: SKScene {
         holdTime = 0
         pendingWord = nil
         lastUpdate = 0
+        active = false
         player.color = .systemYellow
         player.setScale(1)
         player.zRotation = 0
         buildWorld()
-        active = true
+    }
+
+    /// Retry the same level from the start.
+    func restart() {
+        rebuild()
     }
 
     // MARK: Input

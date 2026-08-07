@@ -23,7 +23,7 @@ struct Level {
     let items: [LevelItem]
     let finishX: CGFloat
 
-    static func generate(words: [VocabWord]) -> Level {
+    static func generate(words: [VocabWord], difficulty: Difficulty) -> Level {
         var segments: [GroundSegment] = []
         var items: [LevelItem] = []
 
@@ -39,12 +39,16 @@ struct Level {
         // followed by a gap, with a quiz gate every few chunks.
         let chunkCount = max(6, pool.count)
         for i in 0..<chunkCount {
-            let segLen: CGFloat = 700
+            let segLen = difficulty.segmentLength
             let seg = GroundSegment(startX: x, endX: x + segLen)
             segments.append(seg)
 
-            // A spike partway along the segment.
+            // One or two spikes partway along the segment. A double pair sits
+            // close together so a single well-timed jump clears both.
             items.append(.spike(x: x + segLen * 0.55))
+            if difficulty.doubleSpikes {
+                items.append(.spike(x: x + segLen * 0.66))
+            }
 
             // A collectible word-coin near the segment start.
             let word = pool[wordIndex % pool.count]
@@ -57,8 +61,7 @@ struct Level {
             }
 
             x = seg.endX
-            let gap: CGFloat = 220 // jumpable gap
-            x += gap
+            x += difficulty.gap // jumpable gap, widens with difficulty
         }
 
         // Final safe landing + finish line.

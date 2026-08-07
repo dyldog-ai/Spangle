@@ -23,6 +23,9 @@ struct GameView: View {
             HStack {
                 Label("\(model.wordsLearned)", systemImage: "text.book.closed.fill")
                 Spacer()
+                Text(currentThemeName)
+                    .font(.headline)
+                Spacer()
                 Label("\(model.distance) m", systemImage: "figure.run")
             }
             .font(.headline.monospacedDigit())
@@ -31,6 +34,11 @@ struct GameView: View {
             .padding(.vertical, 12)
             Spacer()
         }
+    }
+
+    private var currentThemeName: String {
+        let themes = Campaign.themes
+        return model.levelIndex < themes.count ? themes[model.levelIndex].name : ""
     }
 
     @ViewBuilder private var toast: some View {
@@ -53,15 +61,24 @@ struct GameView: View {
         switch model.phase {
         case .playing:
             EmptyView()
+        case let .intro(level, theme):
+            LevelCardOverlay(emoji: theme.emoji, eyebrow: "Nivel \(level)",
+                             title: theme.name, subtitle: theme.english,
+                             button: "¡Vamos!") { model.startLevel() }
         case let .quiz(word, options):
             QuizOverlay(word: word, options: options) { model.answer($0) }
         case let .gameOver(reason):
             MessageOverlay(title: "¡Ay!", message: reason,
-                           button: "Try again") { model.restart() }
-        case .won:
-            MessageOverlay(title: "¡Ganaste! 🎉",
-                           message: "You learned \(model.wordsLearned) words.",
-                           button: "Play again") { model.restart() }
+                           button: "Try again") { model.retry() }
+        case let .levelComplete(nextTheme):
+            LevelCardOverlay(emoji: "🎉", eyebrow: "¡Nivel completado!",
+                             title: "You learned \(model.wordsLearned) words",
+                             subtitle: "Next: \(nextTheme.emoji) \(nextTheme.name)",
+                             button: "Next level") { model.nextLevel() }
+        case .campaignComplete:
+            MessageOverlay(title: "¡Campeón! 🏆",
+                           message: "You finished every level. ¡Felicidades!",
+                           button: "Play again") { model.restartCampaign() }
         }
     }
 }
