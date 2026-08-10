@@ -10,6 +10,7 @@ final class GameScene: SKScene {
     private var worldSpeed: CGFloat { difficulty.worldSpeed }
     private let gravity: CGFloat = 2600
     private let jumpVelocity: CGFloat = 1050
+    private let springVelocity: CGFloat = 1450
     private let maxHold: TimeInterval = 0.18
     private let holdGravityFactor: CGFloat = 0.45
     private let playerSize: CGFloat = 46
@@ -38,20 +39,50 @@ final class GameScene: SKScene {
     private let player = PlayerNode(size: 46)
     private var coins: [CoinNode] = []
     private var gates: [GateNode] = []
+    private var springs: [SpringNode] = []
+    private var challengeStars: [ChallengeStarNode] = []
     private var spikes: [CGFloat] = []
 
     private final class CoinNode {
         let x: CGFloat
+        let y: CGFloat
         let word: VocabWord
         let node: SKNode
         var collected = false
-        init(x: CGFloat, word: VocabWord, node: SKNode) { self.x = x; self.word = word; self.node = node }
+
+        init(x: CGFloat, y: CGFloat, word: VocabWord, node: SKNode) {
+            self.x = x
+            self.y = y
+            self.word = word
+            self.node = node
+        }
     }
+
     private final class GateNode {
         let x: CGFloat
         let node: SKNode
         var passed = false
         init(x: CGFloat, node: SKNode) { self.x = x; self.node = node }
+    }
+
+    private final class SpringNode {
+        let x: CGFloat
+        let node: SKNode
+        var activated = false
+        init(x: CGFloat, node: SKNode) { self.x = x; self.node = node }
+    }
+
+    private final class ChallengeStarNode {
+        let x: CGFloat
+        let y: CGFloat
+        let node: SKNode
+        var collected = false
+
+        init(x: CGFloat, y: CGFloat, node: SKNode) {
+            self.x = x
+            self.y = y
+            self.node = node
+        }
     }
 
     private var playerScreenX: CGFloat { size.width * 0.28 }
@@ -115,6 +146,8 @@ final class GameScene: SKScene {
         worldNode.removeAllChildren()
         coins.removeAll()
         gates.removeAll()
+        springs.removeAll()
+        challengeStars.removeAll()
         spikes.removeAll()
 
         for seg in level.segments {
@@ -126,14 +159,22 @@ final class GameScene: SKScene {
             case let .spike(x):
                 spikes.append(x)
                 worldNode.addChild(makeSpike(at: x))
-            case let .coin(x, word):
-                let n = makeCoin(at: x)
-                worldNode.addChild(n)
-                coins.append(CoinNode(x: x, word: word, node: n))
+            case let .coin(x, y, word):
+                let node = makeCoin(at: x)
+                worldNode.addChild(node)
+                coins.append(CoinNode(x: x, y: y, word: word, node: node))
             case let .gate(x):
-                let n = makeGate(at: x)
-                worldNode.addChild(n)
-                gates.append(GateNode(x: x, node: n))
+                let node = makeGate(at: x)
+                worldNode.addChild(node)
+                gates.append(GateNode(x: x, node: node))
+            case let .spring(x):
+                let node = makeSpring(at: x)
+                worldNode.addChild(node)
+                springs.append(SpringNode(x: x, node: node))
+            case let .challengeStar(x, y):
+                let node = makeChallengeStar(at: x)
+                worldNode.addChild(node)
+                challengeStars.append(ChallengeStarNode(x: x, y: y, node: node))
             }
         }
 
@@ -215,6 +256,56 @@ final class GameScene: SKScene {
         return node
     }
 
+    private func makeSpring(at x: CGFloat) -> SKNode {
+        let node = SKNode()
+
+        let base = SKShapeNode(rectOf: CGSize(width: 76, height: 16), cornerRadius: 7)
+        base.fillColor = skin.accent.darker(0.18)
+        base.strokeColor = .white
+        base.lineWidth = 2
+        base.position.y = 8
+        node.addChild(base)
+
+        for offset in [-22.0, 0, 22.0] as [CGFloat] {
+            let arrow = SKLabelNode(text: "▲")
+            arrow.fontName = "AvenirNext-Bold"
+            arrow.fontSize = 19
+            arrow.fontColor = .white
+            arrow.verticalAlignmentMode = .center
+            arrow.position = CGPoint(x: offset, y: 18)
+            node.addChild(arrow)
+        }
+
+        node.name = "spring"
+        node.position = CGPoint(x: x, y: 0)
+        return node
+    }
+
+    private func makeChallengeStar(at x: CGFloat) -> SKNode {
+        let node = SKNode()
+        let star = SKShapeNode()
+        let path = CGMutablePath()
+        for pointIndex in 0..<10 {
+            let angle = CGFloat(pointIndex) * .pi / 5 - .pi / 2
+            let radius: CGFloat = pointIndex.isMultiple(of: 2) ? 27 : 12
+            let point = CGPoint(x: cos(angle) * radius, y: sin(angle) * radius)
+            pointIndex == 0 ? path.move(to: point) : path.addLine(to: point)
+        }
+        path.closeSubpath()
+        star.path = path
+        star.fillColor = SKColor(red: 1, green: 0.82, blue: 0.12, alpha: 1)
+        star.strokeColor = .white
+        star.lineWidth = 3
+        node.addChild(star)
+        node.run(.repeatForever(.group([
+            .sequence([.scale(to: 1.16, duration: 0.55), .scale(to: 1, duration: 0.55)]),
+            .rotate(byAngle: .pi * 2, duration: 3),
+        ])))
+        node.name = "challengeStar"
+        node.position = CGPoint(x: x, y: 0)
+        return node
+    }
+
     private func makeGate(at x: CGFloat) -> SKNode {
         let node = SKNode()
         let post = SKShapeNode(rectOf: CGSize(width: 12, height: 230), cornerRadius: 6)
@@ -272,8 +363,10 @@ final class GameScene: SKScene {
     /// current ground surface every layout so resizing stays correct.
     private func layoutWorldHeights() {
         worldNode.position = CGPoint(x: -scroll, y: groundTopY)
-        for c in coins { c.node.position.y = 96 }
-        for g in gates { g.node.position.y = 0 }
+        for coin in coins { coin.node.position.y = coin.y }
+        for gate in gates { gate.node.position.y = 0 }
+        for spring in springs { spring.node.position.y = 0 }
+        for star in challengeStars { star.node.position.y = star.y }
     }
 
     // MARK: Loop
@@ -319,7 +412,9 @@ final class GameScene: SKScene {
         }
 
         checkSpikes(worldX: worldX)
+        checkSprings(worldX: worldX)
         checkCoins(worldX: worldX)
+        checkChallengeStars(worldX: worldX)
         checkGates(worldX: worldX)
 
         if worldX >= level.finishX {
@@ -329,7 +424,10 @@ final class GameScene: SKScene {
         }
 
         render()
-        game?.updateDistance(Int(scroll / 100))
+        game?.updateRun(
+            distanceMeters: Int(scroll / 100),
+            progress: min(1, Double(worldX / level.finishX))
+        )
     }
 
     private func render() {
@@ -348,14 +446,49 @@ final class GameScene: SKScene {
         }
     }
 
+    private func checkSprings(worldX: CGFloat) {
+        for spring in springs where !spring.activated {
+            guard worldX >= spring.x - 24, worldX <= spring.x + 30,
+                  playerY < 34, vy <= 0 else { continue }
+            spring.activated = true
+            playerY = max(playerY, 1)
+            vy = springVelocity
+            onGround = false
+            holding = false
+            player.squashJump()
+            spring.node.run(.sequence([
+                .scaleY(to: 0.45, duration: 0.06),
+                .scaleY(to: 1.25, duration: 0.08),
+                .scaleY(to: 1, duration: 0.1),
+            ]))
+        }
+    }
+
     private func checkCoins(worldX: CGFloat) {
-        for c in coins where !c.collected {
-            if abs(c.x - worldX) < 34 && abs(playerY - 96) < 96 {
-                c.collected = true
-                c.node.run(.sequence([.group([.scale(to: 1.8, duration: 0.2),
-                                              .fadeOut(withDuration: 0.2)]), .removeFromParent()]))
-                quizWordQueue.collect(c.word)
-                game?.collected(c.word)
+        for coin in coins where !coin.collected {
+            if abs(coin.x - worldX) < 36 && abs(playerY - coin.y) < 86 {
+                coin.collected = true
+                coin.node.run(.sequence([.group([.scale(to: 1.8, duration: 0.2),
+                                                  .fadeOut(withDuration: 0.2)]), .removeFromParent()]))
+                quizWordQueue.collect(coin.word)
+                game?.collected(coin.word)
+            }
+        }
+    }
+
+    private func checkChallengeStars(worldX: CGFloat) {
+        for star in challengeStars where !star.collected {
+            if abs(star.x - worldX) < 38 && abs(playerY - star.y) < 68 {
+                star.collected = true
+                star.node.run(.sequence([
+                    .group([
+                        .scale(to: 2.2, duration: 0.24),
+                        .fadeOut(withDuration: 0.24),
+                        .rotate(byAngle: .pi, duration: 0.24),
+                    ]),
+                    .removeFromParent(),
+                ]))
+                game?.collectedChallengeStar()
             }
         }
     }

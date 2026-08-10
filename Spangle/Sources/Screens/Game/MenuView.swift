@@ -4,6 +4,7 @@ import SwiftUI
 struct MenuView: View {
     let themes: [Theme]
     let isLocked: (Int) -> Bool
+    let bestStarRating: (Int) -> Int
     let onSelect: (Int) -> Void
 
     private let columns = [
@@ -31,8 +32,13 @@ struct MenuView: View {
                         ForEach(Array(themes.enumerated()), id: \.element.id) { index, theme in
                             let locked = isLocked(index)
                             Button { onSelect(index) } label: {
-                                LevelTile(number: index + 1, theme: theme,
-                                          skin: .forLevel(index), locked: locked)
+                                LevelTile(
+                                    number: index + 1,
+                                    theme: theme,
+                                    skin: .forLevel(index),
+                                    locked: locked,
+                                    starRating: bestStarRating(index)
+                                )
                             }
                             .buttonStyle(.plain)
                             .disabled(locked)
@@ -53,6 +59,7 @@ private struct LevelTile: View {
     let theme: Theme
     let skin: Skin
     let locked: Bool
+    let starRating: Int
 
     private var gradient: LinearGradient {
         LinearGradient(colors: [Color(cgColor: skin.skyTop.cgColor),
@@ -78,6 +85,12 @@ private struct LevelTile: View {
                 .foregroundStyle(.white.opacity(0.85))
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
+            if !locked {
+                Text(starRatingText)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(starRating > 0 ? .yellow : .white.opacity(0.45))
+                    .accessibilityLabel("Best rating: \(starRating) of 3 stars")
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(8)
@@ -86,5 +99,10 @@ private struct LevelTile: View {
         .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
         .saturation(locked ? 0 : 1)
         .opacity(locked ? 0.55 : 1)
+    }
+
+    private var starRatingText: String {
+        String(repeating: "★", count: starRating)
+            + String(repeating: "☆", count: max(0, Level.challengeStarCount - starRating))
     }
 }

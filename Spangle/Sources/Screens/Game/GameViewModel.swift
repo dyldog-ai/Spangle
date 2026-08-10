@@ -23,8 +23,12 @@ final class GameViewModel: ObservableObject {
     /// Highest built-in campaign level index the player has unlocked.
     @Published private(set) var unlockedThrough: Int
     @Published private(set) var wordsLearned = 0
+    @Published private(set) var challengeStars = 0
     @Published private(set) var distance = 0
+    @Published private(set) var progress = 0.0
     @Published var toast: VocabWord?
+
+    let challengeStarTotal = Level.challengeStarCount
 
     let scene: GameScene
 
@@ -69,6 +73,11 @@ final class GameViewModel: ObservableObject {
 
     func isLocked(_ index: Int) -> Bool {
         index < Campaign.themes.count && index > unlockedThrough
+    }
+
+    func bestStarRating(for index: Int) -> Int {
+        guard themes.indices.contains(index) else { return 0 }
+        return UserDefaults.standard.integer(forKey: starRatingKey(for: themes[index]))
     }
 
     private func generateAndLoadLevel(at index: Int, list: WordList) {
@@ -128,7 +137,9 @@ final class GameViewModel: ObservableObject {
         themes[index] = theme
         levelIndex = index
         wordsLearned = 0
+        challengeStars = 0
         distance = 0
+        progress = 0
         toast = nil
         finalQuizQueue.removeAll()
         isFinalQuizActive = false
@@ -160,8 +171,13 @@ final class GameViewModel: ObservableObject {
         }
     }
 
-    func updateDistance(_ meters: Int) {
-        distance = meters
+    func collectedChallengeStar() {
+        challengeStars = min(challengeStarTotal, challengeStars + 1)
+    }
+
+    func updateRun(distanceMeters: Int, progress: Double) {
+        distance = distanceMeters
+        self.progress = progress
     }
 
     func presentQuiz(for word: VocabWord) {
@@ -197,6 +213,8 @@ final class GameViewModel: ObservableObject {
 
     private func completeLevel() {
         isFinalQuizActive = false
+        progress = 1
+        saveBestStarRating()
         if levelIndex < Campaign.themes.count {
             unlock(levelIndex + 1)
         }
@@ -209,6 +227,16 @@ final class GameViewModel: ObservableObject {
         guard capped > unlockedThrough else { return }
         unlockedThrough = capped
         UserDefaults.standard.set(capped, forKey: unlockKey)
+    }
+
+    private func saveBestStarRating() {
+        let key = starRatingKey(for: theme)
+        guard challengeStars > UserDefaults.standard.integer(forKey: key) else { return }
+        UserDefaults.standard.set(challengeStars, forKey: key)
+    }
+
+    private func starRatingKey(for theme: Theme) -> String {
+        "challengeStarRating.\(theme.id)"
     }
 
     // MARK: - Called by the UI
@@ -229,7 +257,9 @@ final class GameViewModel: ObservableObject {
 
     func retry() {
         wordsLearned = 0
+        challengeStars = 0
         distance = 0
+        progress = 0
         toast = nil
         finalQuizQueue.removeAll()
         isFinalQuizActive = false

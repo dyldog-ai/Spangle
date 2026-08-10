@@ -5,10 +5,11 @@ A one-touch platformer (Mr Jump–style) that teaches beginner Spanish, for **iO
 ## How to play
 - The character auto-runs to the right.
 - **Tap / click / press Space** to jump. Hold longer to jump higher.
-- Collect gold **word-coins** — a banner shows the Spanish word and its meaning.
+- Collect gold **word-coins** placed along useful jump arcs — a banner shows the Spanish word and its meaning.
+- Hunt for three optional **challenge stars** in every run. Your best rating is saved on the level menu.
+- Land on striped **spring pads** to launch over extended gaps in later levels.
 - At a **translation gate** (`?`), answer one randomly selected collected word that has not been quizzed yet. Gates sit early on long, hazard-free platforms so there is room to prepare for the next jump.
-- Hitting a spike, falling in a gap, or a wrong answer restarts the run.
-- Reaching the finish line starts a final quiz covering every word once; pass it to complete the level.
+- Hitting a spike, falling in a gap, or a wrong answer restarts the run. Reaching the finish starts a final quiz covering every word once.
 
 ## Run it
 
@@ -30,8 +31,14 @@ xcodebuild build -workspace Spangle.xcworkspace -scheme Spangle -destination "ge
 
 ## Levels
 
-The original 12 themed campaign levels remain unchanged and unlock in order. Spangle
-also imports every Spanish ↔ English list from the sibling `QueKit` package—including
+The 12 themed campaign levels unlock in order. Their layouts progressively introduce
+breather sections, single and double hurdles, rhythmic spike runs, translation gates,
+and spring-assisted gaps. Platform lengths, coin heights, hazard spacing, gaps, and
+running speed vary so later levels demand different jump timing rather than repeating
+one chunk. A live progress bar and persistent three-star ratings reward mastery and
+replays.
+
+Spangle also imports every Spanish ↔ English list from the sibling `QueKit` package—including
 Que’s bundled lists and user-created iCloud lists—as additional, always-unlocked
 levels. The menu refreshes the shared collection when it opens.
 

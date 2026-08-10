@@ -4,10 +4,14 @@ import Foundation
 /// Things that can appear in the world at a given horizontal position.
 enum LevelItem {
     case spike(x: CGFloat)
-    /// A word-coin floating above the ground.
-    case coin(x: CGFloat, word: VocabWord)
+    /// A word-coin at a height above the ground surface.
+    case coin(x: CGFloat, y: CGFloat, word: VocabWord)
     /// A gate that quizzes one collected, not-yet-quizzed word.
     case gate(x: CGFloat)
+    /// An automatic high-jump pad used before a longer gap.
+    case spring(x: CGFloat)
+    /// An optional collectible used to earn a three-star level rating.
+    case challengeStar(x: CGFloat, y: CGFloat)
 }
 
 /// A stretch of solid ground the player can stand on (world coordinates).
@@ -16,62 +20,65 @@ struct GroundSegment {
     let endX: CGFloat
 }
 
-/// A procedurally-built level: alternating ground segments (with gaps),
-/// spikes, word-coins and quiz gates.
+/// A procedurally-built level with progressive, hand-tuned obstacle patterns.
 struct Level {
+    static let challengeStarCount = 3
+
     let segments: [GroundSegment]
     let items: [LevelItem]
     let finishX: CGFloat
 
+    private enum Pattern {
+        case hurdle
+        case doubleHurdle
+        case rhythmRun
+        case springGap
+        case breather
+        case gate
+    }
+
     static func generate(words: [VocabWord], difficulty: Difficulty) -> Level {
-        var segments: [GroundSegment] = []
-        var items: [LevelItem] = []
-
-        var x: CGFloat = 0
-        let startPad: CGFloat = 900 // safe runway before first hazard
-        segments.append(GroundSegment(startX: -400, endX: startPad))
-        x = startPad
-
-        let pool = words.shuffled()
-        var wordIndex = 0
-
-        // Each "chunk" is a ground segment holding a hazard and a word-coin,
-        // followed by a gap, with a quiz gate every few chunks.
-        let chunkCount = max(6, pool.count)
-        for i in 0..<chunkCount {
-            let isGateChunk = (i % 3 == 2)
-            // Gate chunks provide a long hazard-free runway after the quiz,
-            // including at the highest scroll speeds.
-            let gateRunwayLength = difficulty.worldSpeed * 0.9
-            let segLen = isGateChunk
-                ? max(difficulty.segmentLength, gateRunwayLength)
-                : difficulty.segmentLength
-            let seg = GroundSegment(startX: x, endX: x + segLen)
-            segments.append(seg)
-
-            if isGateChunk {
-                // Place the gate early so answering never resumes on the edge
-                // of the next gap.
-                items.append(.gate(x: x + segLen * 0.25))
-            } else {
-                // One or two spikes partway along the segment. A double pair sits
-                // close together so a single well-timed jump clears both.
-                items.append(.spike(x: x + segLen * 0.55))
-                if difficulty.doubleSpikes {
-                    items.append(.spike(x: x + segLen * 0.66))
-                }
-            }
-
-            // A collectible word-coin near the segment start (before any gate).
-            let word = pool[wordIndex % pool.count]
-            wordIndex += 1
-            items.append(.coin(x: x + segLen * 0.28, word: word))
-
-            x = seg.endX
-            x += difficulty.gap // jumpable gap, widens with difficulty
+        guard !words.isEmpty else {
+            return Level(
+                segments: [GroundSegment(startX: -400, endX: 1_400)],
+                items: [],
+                finishX: 1_000
+            )
         }
 
-        // Final safe landing + finish line.
+        var segments = [GroundSegment(startX: -400, endX: 900)]
+        var items: [LevelItem] = []
+        var x: CGFloat = 900
+
+        let pool = words.shuffled()
+        let chunkCount = max(8, pool.count)
+        let starChunks = challengeStarChunks(in: chunkCount)
+        let patterns = availablePatterns(for: difficulty)
+        var patternIndex = 0
+
+        for i in 0..<chunkCount {
+            let pattern: Pattern
+            if i % 4 == 3 {
+                pattern = .gate
+            } else {
+                pattern = patterns[patternIndex % patterns.count]
+                patternIndex += 1
+            }
+            let segmentLength = length(for: pattern, difficulty: difficulty)
+            let segment = GroundSegment(startX: x, endX: x + segmentLength)
+            segments.append(segment)
+
+            let gapAfter = populate(
+                pattern,
+                segment: segment,
+                gap: difficulty.gap,
+                word: pool[i % pool.count],
+                includesStar: starChunks.contains(i),
+                items: &items
+            )
+            x = segment.endX + gapAfter
+        }
+
         let finish = x + 600
         segments.append(GroundSegment(startX: x, endX: finish + 400))
         return Level(segments: segments, items: items, finishX: finish)
@@ -80,5 +87,94 @@ struct Level {
     /// Whether solid ground exists at `worldX`.
     func hasGround(at worldX: CGFloat) -> Bool {
         segments.contains { worldX >= $0.startX && worldX <= $0.endX }
+    }
+
+    private static func availablePatterns(for difficulty: Difficulty) -> [Pattern] {
+        var patterns: [Pattern] = [.hurdle]
+        if difficulty.supportsDoubleHurdles { patterns.append(.doubleHurdle) }
+        if difficulty.supportsRhythmRuns { patterns.append(.rhythmRun) }
+        if difficulty.supportsSpringGaps { patterns.append(.springGap) }
+        patterns.append(.breather)
+        return patterns
+    }
+
+    private static func length(for pattern: Pattern, difficulty: Difficulty) -> CGFloat {
+        switch pattern {
+        case .gate:
+            return max(difficulty.segmentLength, difficulty.worldSpeed * 0.9)
+        case .rhythmRun:
+            return max(difficulty.segmentLength * 1.35, 780)
+        case .springGap:
+            return max(difficulty.segmentLength, 620)
+        case .breather:
+            return max(difficulty.segmentLength * 0.82, 500)
+        case .hurdle, .doubleHurdle:
+            return difficulty.segmentLength
+        }
+    }
+
+    /// Adds a pattern's objects and returns the gap following its platform.
+    private static func populate(
+        _ pattern: Pattern,
+        segment: GroundSegment,
+        gap: CGFloat,
+        word: VocabWord,
+        includesStar: Bool,
+        items: inout [LevelItem]
+    ) -> CGFloat {
+        let length = segment.endX - segment.startX
+        let position: (CGFloat) -> CGFloat = { segment.startX + length * $0 }
+        var starPosition = CGPoint(x: position(0.7), y: 170)
+        var gapAfter = gap
+
+        switch pattern {
+        case .hurdle:
+            items.append(.spike(x: position(0.58)))
+            items.append(.coin(x: position(0.58), y: 128, word: word))
+            starPosition = CGPoint(x: position(0.76), y: 150)
+
+        case .doubleHurdle:
+            items.append(.spike(x: position(0.54)))
+            items.append(.spike(x: position(0.64)))
+            items.append(.coin(x: position(0.59), y: 158, word: word))
+            starPosition = CGPoint(x: position(0.59), y: 220)
+
+        case .rhythmRun:
+            items.append(.spike(x: position(0.34)))
+            items.append(.spike(x: position(0.72)))
+            items.append(.coin(x: position(0.72), y: 138, word: word))
+            starPosition = CGPoint(x: position(0.52), y: 190)
+
+        case .springGap:
+            gapAfter = gap * 1.35
+            items.append(.spring(x: position(0.82)))
+            items.append(.coin(
+                x: segment.endX + gapAfter * 0.43,
+                y: 350,
+                word: word
+            ))
+            starPosition = CGPoint(
+                x: segment.endX + gapAfter * 0.68,
+                y: 350
+            )
+
+        case .breather:
+            items.append(.coin(x: position(0.5), y: 68, word: word))
+            starPosition = CGPoint(x: position(0.72), y: 185)
+
+        case .gate:
+            items.append(.gate(x: position(0.2)))
+            items.append(.coin(x: position(0.55), y: 82, word: word))
+            starPosition = CGPoint(x: position(0.72), y: 160)
+        }
+
+        if includesStar {
+            items.append(.challengeStar(x: starPosition.x, y: starPosition.y))
+        }
+        return gapAfter
+    }
+
+    private static func challengeStarChunks(in chunkCount: Int) -> Set<Int> {
+        Set([1, chunkCount / 2, max(0, chunkCount - 2)])
     }
 }

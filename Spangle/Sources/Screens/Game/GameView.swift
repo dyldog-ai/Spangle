@@ -38,13 +38,22 @@ struct GameView: View {
 
     private var hud: some View {
         VStack {
-            HStack {
-                Label("\(model.wordsLearned)", systemImage: "text.book.closed.fill")
-                Spacer()
-                Text(model.currentThemeName)
-                    .font(.headline)
-                Spacer()
-                Label("\(model.distance) m", systemImage: "figure.run")
+            VStack(spacing: 7) {
+                HStack {
+                    Label("\(model.wordsLearned)", systemImage: "text.book.closed.fill")
+                    Label(
+                        "\(model.challengeStars)/\(model.challengeStarTotal)",
+                        systemImage: "star.fill"
+                    )
+                    Spacer()
+                    Text(model.currentThemeName)
+                        .font(.headline)
+                    Spacer()
+                    Label("\(model.distance) m", systemImage: "figure.run")
+                }
+                ProgressView(value: model.progress)
+                    .tint(.yellow)
+                    .background(.white.opacity(0.25), in: Capsule())
             }
             .font(.headline.monospacedDigit())
             .foregroundStyle(.white)
@@ -76,6 +85,7 @@ struct GameView: View {
             MenuView(
                 themes: model.themes,
                 isLocked: model.isLocked,
+                bestStarRating: model.bestStarRating,
                 onSelect: model.selectLevel
             )
         case .playing:
@@ -99,7 +109,7 @@ struct GameView: View {
                 emoji: theme.emoji,
                 eyebrow: "Nivel \(level)",
                 title: theme.name,
-                subtitle: theme.english,
+                subtitle: "\(theme.english) · Find all \(model.challengeStarTotal) stars",
                 button: "¡Vamos!",
                 action: model.startLevel,
                 secondary: ("Menu", model.goToMenu)
@@ -116,9 +126,9 @@ struct GameView: View {
             )
         case let .levelComplete(nextTheme):
             LevelCardOverlay(
-                emoji: "🎉",
+                emoji: model.challengeStars == model.challengeStarTotal ? "🌟" : "🎉",
                 eyebrow: "¡Nivel completado!",
-                title: "You learned \(model.wordsLearned) words",
+                title: "\(model.challengeStars)/\(model.challengeStarTotal) stars · \(model.wordsLearned) words",
                 subtitle: "Next: \(nextTheme.emoji) \(nextTheme.name)",
                 button: "Next level",
                 action: model.nextLevel,

@@ -12,14 +12,14 @@ struct Theme: Identifiable, Equatable {
     let sourceList: WordList?
 
     init(
-        id: String = UUID().uuidString,
+        id: String? = nil,
         name: String,
         english: String,
         emoji: String,
         words: [VocabWord],
         sourceList: WordList? = nil
     ) {
-        self.id = id
+        self.id = id ?? "theme.\(name)"
         self.name = name
         self.english = english
         self.emoji = emoji
