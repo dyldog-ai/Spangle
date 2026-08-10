@@ -277,7 +277,52 @@ final class GameViewModel: ObservableObject {
     #if DEVELOPER_FEATURES
     func playCustomLevel(_ definition: CustomLevelDefinition) {
         guard definition.validationMessage == nil else { return }
+        if definition.usesGeneratedVocabulary {
+            generateAndPlayCustomLevel(definition)
+        } else {
+            loadCustomDefinition(definition)
+        }
+    }
+
+    private func generateAndPlayCustomLevel(_ definition: CustomLevelDefinition) {
+        #if DEVELOPER_INTEGRATIONS
+        guard generator.isAvailable, let prompt = definition.vocabularyPrompt else {
+            phase = .listError(message: "Apple Intelligence is unavailable, so this level’s vocabulary can’t be generated.")
+            return
+        }
+        generationTask?.cancel()
+        phase = .generating(listName: definition.title)
+        generationTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let generated = try await generator.generate(
+                    prompt: prompt,
+                    front: .spanish,
+                    back: .english,
+                    count: definition.generatedWordCount ?? 8
+                )
+                guard !Task.isCancelled else { return }
+                var playableDefinition = definition
+                playableDefinition.applyGeneratedVocabulary(
+                    generated.map { VocabWord(spanish: $0.front, english: $0.back) }
+                )
+                loadCustomDefinition(playableDefinition)
+            } catch {
+                guard !Task.isCancelled else { return }
+                phase = .listError(message: "Couldn’t generate vocabulary for “\(definition.title)”. Please try again.")
+            }
+        }
+        #else
+        phase = .listError(message: "Dynamic vocabulary generation is unavailable in this build.")
+        #endif
+    }
+
+    private func loadCustomDefinition(_ definition: CustomLevelDefinition) {
         let words = definition.words
+        guard !words.isEmpty else {
+            phase = .listError(message: "This custom level has no vocabulary yet.")
+            return
+        }
         let theme = Theme(
             id: "custom.\(definition.id.uuidString)",
             name: definition.title,

@@ -18,6 +18,30 @@ struct LevelCreatorTests {
     }
 
     @Test
+    func generatedVocabularyIsConfiguredWithoutPreGeneratingWords() {
+        var definition = CustomLevelDefinition.empty
+        definition.configureGeneratedVocabulary(prompt: "animals on a farm", count: 6)
+
+        #expect(definition.usesGeneratedVocabulary)
+        #expect(definition.vocabularyPrompt == "animals on a farm")
+        #expect(definition.words.isEmpty)
+        #expect(definition.objects.filter { $0.kind == .coin }.count == 6)
+        #expect(definition.validationMessage == nil)
+
+        let generated = [
+            VocabWord(spanish: "gato", english: "cat"),
+            VocabWord(spanish: "perro", english: "dog"),
+            VocabWord(spanish: "vaca", english: "cow"),
+            VocabWord(spanish: "cerdo", english: "pig"),
+            VocabWord(spanish: "pato", english: "duck"),
+            VocabWord(spanish: "oveja", english: "sheep"),
+        ]
+        definition.applyGeneratedVocabulary(generated)
+        #expect(definition.words == generated)
+        #expect(definition.usesGeneratedVocabulary)
+    }
+
+    @Test
     func emptyDefinitionHasNoObjects() {
         let definition = CustomLevelDefinition.empty
         #expect(definition.objects.isEmpty)

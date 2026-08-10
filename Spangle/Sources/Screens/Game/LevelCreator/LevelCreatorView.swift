@@ -1,12 +1,16 @@
 #if DEVELOPER_FEATURES
-#if canImport(QueKit)
-import QueKit
-#endif
 import SwiftUI
 
 private struct LevelObjectPosition {
     let x: Double
     let y: Double
+}
+
+private enum VocabularyEditorMode: String, CaseIterable, Identifiable {
+    case manual = "Manual List"
+    case generated = "Generated"
+
+    var id: Self { self }
 }
 
 private enum LevelEditorSection: String, CaseIterable, Identifiable {
@@ -28,9 +32,9 @@ struct LevelCreatorView: View {
     @State private var showsVocabularyEditor = false
     @State private var vocabularyDraft = ""
     @State private var vocabularyError: String?
+    @State private var vocabularyMode = VocabularyEditorMode.manual
     @State private var generationPrompt = ""
     @State private var generatedWordCount = 8
-    @State private var isGeneratingVocabulary = false
     @State private var dragOrigins: [UUID: LevelObjectPosition] = [:]
     @State private var loadedInitialLevel = false
     @State private var editorSection = LevelEditorSection.level
@@ -88,22 +92,26 @@ struct LevelCreatorView: View {
 
     private var creatorTopBar: some View {
         HStack(spacing: isCompactEditor ? 7 : 10) {
-            Picker("Editor section", selection: $editorSection) {
-                ForEach(LevelEditorSection.allCases) { section in
-                    Text(section.rawValue).tag(section)
+            VStack {
+                HStack {
+                    Picker("Editor section", selection: $editorSection) {
+                        ForEach(LevelEditorSection.allCases) { section in
+                            Text(section.rawValue).tag(section)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+
+                    ScrollView(.horizontal) {
+                        sectionControls
+                            .padding(.horizontal, 2)
+                    }
+                    .scrollIndicators(.hidden)
+                    .frame(maxWidth: .infinity)
                 }
-            }
-            .pickerStyle(.segmented)
-            .frame(width: isCompactEditor ? 118 : 150)
 
-            ScrollView(.horizontal) {
-                sectionControls
-                    .padding(.horizontal, 2)
+                editorStatus
             }
-            .scrollIndicators(.hidden)
-            .frame(maxWidth: .infinity)
-
-            editorStatus
                 .fixedSize()
             Button(action: saveDraft) {
                 actionLabel("Save", systemImage: "square.and.arrow.down.fill")
@@ -159,7 +167,10 @@ struct LevelCreatorView: View {
                     Label("New", systemImage: "doc.badge.plus")
                 }
                 Button {
+                    vocabularyMode = draft.usesGeneratedVocabulary ? .generated : .manual
                     vocabularyDraft = draft.vocabularyText
+                    generationPrompt = draft.vocabularyPrompt ?? ""
+                    generatedWordCount = draft.generatedWordCount ?? 8
                     vocabularyError = nil
                     showsVocabularyEditor = true
                 } label: {
@@ -202,39 +213,41 @@ struct LevelCreatorView: View {
     private var vocabularyEditor: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 12) {
-                GroupBox("Generate with Apple Intelligence") {
-                    HStack(spacing: 10) {
-                        TextField("Prompt, e.g. animals on a farm", text: $generationPrompt)
-                            .textFieldStyle(.roundedBorder)
-                        Stepper("\(generatedWordCount) words", value: $generatedWordCount, in: 4...20)
-                            .fixedSize()
-                        Button(action: generateVocabulary) {
-                            if isGeneratingVocabulary {
-                                ProgressView()
-                                    .controlSize(.small)
-                            } else {
-                                Label("Generate", systemImage: "sparkles")
-                            }
-                        }
-                        .disabled(generationPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                                  || isGeneratingVocabulary || !vocabularyGeneratorAvailable)
-                    }
-                    if !vocabularyGeneratorAvailable {
-                        Text("Apple Intelligence must be enabled and available on this device.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                Picker("Vocabulary source", selection: $vocabularyMode) {
+                    ForEach(VocabularyEditorMode.allCases) { mode in
+                        Text(mode.rawValue).tag(mode)
                     }
                 }
-                Text("Or enter one Spanish and English pair per line, separated by an equals sign.")
-                    .font(.subheadline)
-                Text("hola = hello\nsalta = jump")
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-                TextEditor(text: $vocabularyDraft)
-                    .font(.body.monospaced())
-                    .padding(6)
-                    .background(Color.storybookPaper, in: RoundedRectangle(cornerRadius: 12))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.storybookInk.opacity(0.3)))
+                .pickerStyle(.segmented)
+
+                if vocabularyMode == .generated {
+                    GroupBox("Dynamic vocabulary") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            TextField("Prompt, e.g. animals on a farm", text: $generationPrompt)
+                                .textFieldStyle(.roundedBorder)
+                            Stepper("Generate \(generatedWordCount) words each run",
+                                    value: $generatedWordCount, in: 4...20)
+                            Label(
+                                "Apple Intelligence creates a fresh Spanish–English list whenever this level is played.",
+                                systemImage: "sparkles"
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        }
+                    }
+                    Spacer()
+                } else {
+                    Text("Enter one Spanish and English pair per line, separated by an equals sign.")
+                        .font(.subheadline)
+                    Text("hola = hello\nsalta = jump")
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                    TextEditor(text: $vocabularyDraft)
+                        .font(.body.monospaced())
+                        .padding(6)
+                        .background(Color.storybookPaper, in: RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.storybookInk.opacity(0.3)))
+                }
                 if let vocabularyError {
                     Label(vocabularyError, systemImage: "exclamationmark.triangle.fill")
                         .font(.caption.bold())
@@ -257,45 +270,21 @@ struct LevelCreatorView: View {
         #endif
     }
 
-    private var vocabularyGeneratorAvailable: Bool {
-        #if canImport(QueKit)
-        FoundationModelsWordListGenerator().isAvailable
-        #else
-        false
-        #endif
-    }
-
-    private func generateVocabulary() {
-        #if canImport(QueKit)
-        let prompt = generationPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !prompt.isEmpty else { return }
-        isGeneratingVocabulary = true
-        vocabularyError = nil
-        Task { @MainActor in
-            do {
-                let generated = try await FoundationModelsWordListGenerator().generate(
-                    prompt: prompt,
-                    front: .spanish,
-                    back: .english,
-                    count: generatedWordCount
-                )
-                vocabularyDraft = generated
-                    .map { "\($0.front) = \($0.back)" }
-                    .joined(separator: "\n")
-            } catch {
-                vocabularyError = "Vocabulary generation failed. Check Apple Intelligence and try again."
-            }
-            isGeneratingVocabulary = false
-        }
-        #endif
-    }
-
     private func applyVocabulary() {
-        guard let words = CustomLevelDefinition.parseVocabulary(vocabularyDraft) else {
-            vocabularyError = "Use “Spanish = English” on every non-empty line."
-            return
+        if vocabularyMode == .generated {
+            let prompt = generationPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !prompt.isEmpty else {
+                vocabularyError = "Add a prompt for dynamic vocabulary generation."
+                return
+            }
+            draft.configureGeneratedVocabulary(prompt: prompt, count: generatedWordCount)
+        } else {
+            guard let words = CustomLevelDefinition.parseVocabulary(vocabularyDraft) else {
+                vocabularyError = "Use “Spanish = English” on every non-empty line."
+                return
+            }
+            draft.replaceVocabulary(with: words)
         }
-        draft.replaceVocabulary(with: words)
         selectedID = nil
         vocabularyError = nil
         showsVocabularyEditor = false

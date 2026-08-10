@@ -311,14 +311,14 @@ struct GameView: View {
                 title: "Creating level… ✨",
                 message: "Generating fresh words for \(listName)",
                 button: "Cancel",
-                action: model.goToMenu
+                action: leaveLevel
             )
         case let .listError(message):
             MessageOverlay(
                 title: "List unavailable",
                 message: message,
                 button: "Menu",
-                action: model.goToMenu
+                action: leaveLevel
             )
         case let .intro(eyebrow, theme):
             LevelCardOverlay(
