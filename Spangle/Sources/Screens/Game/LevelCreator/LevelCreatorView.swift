@@ -503,7 +503,7 @@ struct LevelCreatorView: View {
                         Label(kind.title, systemImage: kind.symbol).tag(kind)
                     }
                 }
-                .frame(maxWidth: 210)
+                .labelsHidden()
                 LabeledContent("X") {
                     TextField("X", value: object.x, format: .number).frame(width: 66)
                 }
