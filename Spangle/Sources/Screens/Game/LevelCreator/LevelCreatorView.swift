@@ -13,13 +13,6 @@ private enum VocabularyEditorMode: String, CaseIterable, Identifiable {
     var id: Self { self }
 }
 
-private enum LevelEditorSection: String, CaseIterable, Identifiable {
-    case level = "Level"
-    case tools = "Tools"
-
-    var id: Self { self }
-}
-
 struct LevelCreatorView: View {
     @ObservedObject var store: LevelCreatorStore
     @Environment(\.verticalSizeClass) private var verticalSizeClass
@@ -41,7 +34,7 @@ struct LevelCreatorView: View {
     @State private var generationPrompt = ""
     @State private var dragOrigins: [UUID: LevelObjectPosition] = [:]
     @State private var loadedInitialLevel = false
-    @State private var editorSection = LevelEditorSection.level
+    @State private var showsTools = true
 
     private let levelEmojis = ["🛠️", "🌟", "🏰", "🌳", "🌊", "🏜️", "❄️", "🌋", "🌙", "🎨", "🎵", "⚽️", "🐾", "🚀", "🗺️", "📚"]
     private let horizontalScale: CGFloat = 0.16
@@ -62,7 +55,7 @@ struct LevelCreatorView: View {
                         VStack(spacing: 10) {
                             HStack(alignment: .top, spacing: 10) {
                                 timeline
-                                if editorSection == .tools {
+                                if showsTools {
                                     toolsSidebar
                                 }
                             }
@@ -121,29 +114,23 @@ struct LevelCreatorView: View {
     private var creatorTopBar: some View {
         HStack(spacing: isCompactEditor ? 7 : 10) {
             VStack(alignment: .leading) {
-                HStack {
-                    Picker("Editor section", selection: $editorSection) {
-                        ForEach(LevelEditorSection.allCases) { section in
-                            Text(section.rawValue).tag(section)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .labelsHidden()
-
-                    ScrollView(.horizontal) {
-                        sectionControls
-                            .padding(.horizontal, 2)
-                    }
-                    .scrollIndicators(.hidden)
-                    .frame(maxWidth: .infinity)
+                ScrollView(.horizontal) {
+                    levelControls
+                        .padding(.horizontal, 2)
                 }
-
+                .scrollIndicators(.hidden)
                 editorStatus
             }
             .fixedSize()
 
             Spacer()
 
+            Button {
+                withAnimation(.easeInOut(duration: 0.18)) { showsTools.toggle() }
+            } label: {
+                actionLabel(showsTools ? "Hide Tools" : "Show Tools", systemImage: "sidebar.right")
+            }
+            .buttonStyle(StorybookSecondaryButtonStyle())
             Button(action: saveDraft) {
                 actionLabel("Save", systemImage: "square.and.arrow.down.fill")
             }
@@ -167,31 +154,24 @@ struct LevelCreatorView: View {
         .accessibilityElement(children: .contain)
     }
 
-    @ViewBuilder private var sectionControls: some View {
-        switch editorSection {
-        case .level:
-            HStack(spacing: 8) {
-                Picker("Level emoji", selection: $draft.emoji) {
-                    ForEach(availableLevelEmojis, id: \.self) { emoji in
-                        Text(emoji).tag(emoji)
-                    }
+    private var levelControls: some View {
+        HStack(spacing: 8) {
+            Picker("Level emoji", selection: $draft.emoji) {
+                ForEach(availableLevelEmojis, id: \.self) { emoji in
+                    Text(emoji).tag(emoji)
                 }
-                .pickerStyle(.menu)
-                .accessibilityValue(draft.emoji)
-                .labelsHidden()
-                TextField("Level title", text: $draft.title).frame(width: 150)
-                LabeledContent("Length") {
-                    TextField("Length", value: $draft.finishX, format: .number).frame(width: 72)
-                }
-                .fixedSize()
-                Stepper("Difficulty \(draft.difficultyIndex + 1)",
-                        value: $draft.difficultyIndex, in: 0...11)
-                    .fixedSize()
             }
-        case .tools:
-            Label("Timeline tools", systemImage: "sidebar.right")
-                .font(.caption.bold())
-                .foregroundStyle(.secondary)
+            .pickerStyle(.menu)
+            .accessibilityValue(draft.emoji)
+            .labelsHidden()
+            TextField("Level title", text: $draft.title).frame(width: 150)
+            LabeledContent("Length") {
+                TextField("Length", value: $draft.finishX, format: .number).frame(width: 72)
+            }
+            .fixedSize()
+            Stepper("Difficulty \(draft.difficultyIndex + 1)",
+                    value: $draft.difficultyIndex, in: 0...11)
+                .fixedSize()
         }
     }
 
