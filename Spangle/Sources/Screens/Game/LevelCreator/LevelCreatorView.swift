@@ -45,7 +45,11 @@ struct LevelCreatorView: View {
                 .padding(14)
             }
             .navigationTitle("Level Creator")
+            #if os(iOS)
+            .toolbar(.hidden, for: .navigationBar)
+            #else
             .toolbar { creatorToolbar }
+            #endif
         }
         #if os(macOS)
         .frame(minWidth: 900, minHeight: 560)
@@ -89,6 +93,12 @@ struct LevelCreatorView: View {
             }
             .buttonStyle(StorybookPrimaryButtonStyle())
             .disabled(draft.validationMessage != nil)
+            #if os(iOS)
+            Button(action: saveAndClose) {
+                actionLabel("Save & Close", systemImage: "xmark.circle.fill")
+            }
+            .buttonStyle(StorybookSecondaryButtonStyle())
+            #endif
         }
         .foregroundStyle(Color.storybookInk)
         .padding(10)
@@ -347,11 +357,13 @@ struct LevelCreatorView: View {
 
     @ToolbarContentBuilder private var creatorToolbar: some ToolbarContent {
         ToolbarItem(placement: .confirmationAction) {
-            Button("Save & Close") {
-                saveDraft()
-                dismiss()
-            }
+            Button("Save & Close", action: saveAndClose)
         }
+    }
+
+    private func saveAndClose() {
+        saveDraft()
+        dismiss()
     }
 
     private func loadInitialLevelIfNeeded() {
