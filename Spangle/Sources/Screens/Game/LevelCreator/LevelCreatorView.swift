@@ -89,12 +89,13 @@ struct LevelCreatorView: View {
         .sheet(isPresented: $showsVocabularyEditor) {
             vocabularyEditor
         }
-        #if os(iOS)
-        .fullScreenCover(item: $previewLevel) { level in
+        #if os(macOS)
+        .sheet(item: $previewLevel) { level in
             GameView(previewLevel: level) { previewLevel = nil }
+                .frame(minWidth: 900, minHeight: 560)
         }
         #else
-        .sheet(item: $previewLevel) { level in
+        .fullScreenCover(item: $previewLevel) { level in
             GameView(previewLevel: level) { previewLevel = nil }
         }
         #endif

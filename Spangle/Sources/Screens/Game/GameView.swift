@@ -21,8 +21,7 @@ struct GameView: View {
     @State private var jumpPressActive = false
     #if DEVELOPER_FEATURES
     @State private var showsLevelCreator = false
-    @State private var returnsToLevelCreator = false
-    @State private var editingCustomLevelID: UUID?
+    @State private var presentedCustomLevel: CustomLevelDefinition?
     #endif
 
     init() {
@@ -115,19 +114,23 @@ struct GameView: View {
         #if DEVELOPER_FEATURES
             #if os(iOS)
             .fullScreenCover(isPresented: $showsLevelCreator) {
-                LevelCreatorLibraryView(
-                    store: levelCreatorStore,
-                    initialEditorLevelID: editingCustomLevelID,
-                    onPlay: playFromLevelCreator
-                )
+                LevelCreatorLibraryView(store: levelCreatorStore)
             }
             #else
             .sheet(isPresented: $showsLevelCreator) {
-                LevelCreatorLibraryView(
-                    store: levelCreatorStore,
-                    initialEditorLevelID: editingCustomLevelID,
-                    onPlay: playFromLevelCreator
-                )
+                LevelCreatorLibraryView(store: levelCreatorStore)
+            }
+            #endif
+        #endif
+        #if DEVELOPER_FEATURES
+            #if os(iOS)
+            .fullScreenCover(item: $presentedCustomLevel) { level in
+                GameView(previewLevel: level) { presentedCustomLevel = nil }
+            }
+            #else
+            .sheet(item: $presentedCustomLevel) { level in
+                GameView(previewLevel: level) { presentedCustomLevel = nil }
+                    .frame(minWidth: 900, minHeight: 560)
             }
             #endif
         #endif
@@ -267,30 +270,14 @@ struct GameView: View {
     private func playCustomLevel(id: UUID) {
         #if DEVELOPER_FEATURES
         guard let level = levelCreatorStore.levels.first(where: { $0.id == id }) else { return }
-        returnsToLevelCreator = false
-        editingCustomLevelID = nil
-        model.playCustomLevel(level)
+        presentedCustomLevel = level
         #endif
     }
-
-    #if DEVELOPER_FEATURES
-    private func playFromLevelCreator(_ level: CustomLevelDefinition) {
-        returnsToLevelCreator = true
-        editingCustomLevelID = level.id
-        model.playCustomLevel(level)
-    }
-    #endif
 
     private func leaveLevel() {
         model.goToMenu()
         #if DEVELOPER_FEATURES
-        if let onPreviewExit {
-            onPreviewExit()
-            return
-        }
-        guard returnsToLevelCreator else { return }
-        returnsToLevelCreator = false
-        Task { @MainActor in showsLevelCreator = true }
+        if let onPreviewExit { onPreviewExit() }
         #endif
     }
 
@@ -301,22 +288,12 @@ struct GameView: View {
             onPreviewExit()
             return
         }
-        let shouldReturnToCreator = returnsToLevelCreator
-        #else
-        let shouldReturnToCreator = false
         #endif
         model.continueAfterResults()
-        #if DEVELOPER_FEATURES
-        if shouldReturnToCreator {
-            returnsToLevelCreator = false
-            Task { @MainActor in showsLevelCreator = true }
-        }
-        #endif
     }
 
     private func openLevelCreator() {
         #if DEVELOPER_FEATURES
-        editingCustomLevelID = nil
         showsLevelCreator = true
         #endif
     }

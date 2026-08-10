@@ -3,14 +3,12 @@ import SwiftUI
 
 struct LevelCreatorLibraryView: View {
     @ObservedObject var store: LevelCreatorStore
-    let initialEditorLevelID: UUID?
-    let onPlay: (CustomLevelDefinition) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var showsEditor = false
     @State private var editorLevelID: UUID?
     @State private var editorSessionID = UUID()
     @State private var levelPendingDeletion: CustomLevelDefinition?
-    @State private var handledInitialEditor = false
+    @State private var previewLevel: CustomLevelDefinition?
 
     var body: some View {
         NavigationStack {
@@ -51,8 +49,15 @@ struct LevelCreatorLibraryView: View {
         #if os(macOS)
         .frame(minWidth: 700, minHeight: 520)
         .sheet(isPresented: $showsEditor) { editor }
+        .sheet(item: $previewLevel) { level in
+            GameView(previewLevel: level) { previewLevel = nil }
+                .frame(minWidth: 900, minHeight: 560)
+        }
         #else
         .fullScreenCover(isPresented: $showsEditor) { editor }
+        .fullScreenCover(item: $previewLevel) { level in
+            GameView(previewLevel: level) { previewLevel = nil }
+        }
         #endif
         .confirmationDialog(
             "Delete \(levelPendingDeletion?.title ?? "this level")?",
@@ -64,7 +69,7 @@ struct LevelCreatorLibraryView: View {
         } message: {
             Text("This cannot be undone.")
         }
-        .onAppear(perform: openInitialEditorIfNeeded)
+        .onAppear { store.reloadFromCloud() }
     }
 
     private var emptyState: some View {
@@ -98,8 +103,7 @@ struct LevelCreatorLibraryView: View {
             }
             Spacer()
             Button("Play", systemImage: "play.fill") {
-                dismiss()
-                onPlay(level)
+                previewLevel = level
             }
             .buttonStyle(StorybookPrimaryButtonStyle())
             Button("Edit", systemImage: "pencil") {
@@ -153,14 +157,5 @@ struct LevelCreatorLibraryView: View {
         levelPendingDeletion = nil
     }
 
-    private func openInitialEditorIfNeeded() {
-        guard !handledInitialEditor else { return }
-        handledInitialEditor = true
-        guard let initialEditorLevelID,
-              store.levels.contains(where: { $0.id == initialEditorLevelID }) else { return }
-        editorLevelID = initialEditorLevelID
-        editorSessionID = UUID()
-        showsEditor = true
-    }
 }
 #endif
