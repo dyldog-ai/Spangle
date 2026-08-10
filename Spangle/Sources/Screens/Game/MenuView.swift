@@ -6,7 +6,9 @@ struct MenuView: View {
     let isLocked: (Int) -> Bool
     let onSelect: (Int) -> Void
 
-    private let columns = [GridItem(.adaptive(minimum: 150), spacing: 14)]
+    private let columns = [
+        GridItem(.adaptive(minimum: 150, maximum: 220), spacing: 14),
+    ]
 
     var body: some View {
         ZStack {
@@ -24,8 +26,8 @@ struct MenuView: View {
                 .foregroundStyle(.white)
                 .padding(.top, 12)
 
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: 14) {
+                ScrollView(.vertical) {
+                    LazyVGrid(columns: columns, alignment: .center, spacing: 14) {
                         ForEach(Array(themes.enumerated()), id: \.element.id) { index, theme in
                             let locked = isLocked(index)
                             Button { onSelect(index) } label: {
@@ -37,8 +39,9 @@ struct MenuView: View {
                         }
                     }
                     .padding(.horizontal)
-                    .padding(.bottom, 20)
+                    .padding(.bottom, 24)
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
     }
@@ -62,14 +65,23 @@ private struct LevelTile: View {
             Text(locked ? "🔒" : theme.emoji).font(.system(size: 40))
                 .shadow(color: .black.opacity(0.25), radius: 2, y: 1)
             Text("Nivel \(number)")
-                .font(.caption.weight(.bold)).foregroundStyle(.white.opacity(0.9))
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.white.opacity(0.9))
             Text(theme.name)
-                .font(.headline).foregroundStyle(.white).multilineTextAlignment(.center)
+                .font(.headline)
+                .foregroundStyle(.white)
+                .multilineTextAlignment(.center)
+                .lineLimit(2, reservesSpace: true)
+                .minimumScaleFactor(0.8)
             Text(locked ? "Locked" : theme.english)
-                .font(.caption).foregroundStyle(.white.opacity(0.85))
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.85))
+                .lineLimit(2, reservesSpace: true)
+                .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
+        .frame(height: 154)
+        .padding(.horizontal, 8)
         .background(gradient, in: RoundedRectangle(cornerRadius: 18))
         .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(.white.opacity(0.35), lineWidth: 1))
         .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
