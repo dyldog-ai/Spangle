@@ -188,9 +188,6 @@ struct LevelCreatorView: View {
                     Label("Delete \(selectedIDs.count)", systemImage: "trash.fill")
                 }
             }
-            Divider()
-            Text("\(draft.vocabularyCount) words")
-            Text("\(draft.objects.count) objects")
         }
         .font(.caption.bold())
         .buttonStyle(StorybookSecondaryButtonStyle())
