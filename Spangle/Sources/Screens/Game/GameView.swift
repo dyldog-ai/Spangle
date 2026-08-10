@@ -83,9 +83,15 @@ struct GameView: View {
             )
         }
         #if DEVELOPER_FEATURES
-        .sheet(isPresented: $showsLevelCreator) {
-            LevelCreatorView(store: levelCreatorStore, onPlay: model.playCustomLevel)
-        }
+            #if os(iOS)
+            .fullScreenCover(isPresented: $showsLevelCreator) {
+                LevelCreatorView(store: levelCreatorStore, onPlay: model.playCustomLevel)
+            }
+            #else
+            .sheet(isPresented: $showsLevelCreator) {
+                LevelCreatorView(store: levelCreatorStore, onPlay: model.playCustomLevel)
+            }
+            #endif
         #endif
         .transaction { transaction in
             if model.settings.reducedMotion { transaction.animation = nil }

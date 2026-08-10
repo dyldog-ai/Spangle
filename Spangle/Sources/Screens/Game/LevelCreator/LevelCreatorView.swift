@@ -8,6 +8,7 @@ private struct LevelObjectPosition {
 
 struct LevelCreatorView: View {
     @ObservedObject var store: LevelCreatorStore
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
     let onPlay: (CustomLevelDefinition) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var draft = CustomLevelDefinition.starter
@@ -19,8 +20,9 @@ struct LevelCreatorView: View {
     @State private var dragOrigins: [UUID: LevelObjectPosition] = [:]
 
     private let horizontalScale: CGFloat = 0.16
-    private let verticalScale: CGFloat = 0.52
-    private let timelineHeight: CGFloat = 190
+    private var isCompactEditor: Bool { verticalSizeClass == .compact }
+    private var verticalScale: CGFloat { isCompactEditor ? 0.38 : 0.52 }
+    private var timelineHeight: CGFloat { isCompactEditor ? 150 : 190 }
 
     var body: some View {
         NavigationStack {
@@ -52,8 +54,8 @@ struct LevelCreatorView: View {
     }
 
     private var creatorActionBar: some View {
-        HStack(spacing: 10) {
-            Menu("Saved Levels", systemImage: "folder.fill") {
+        HStack(spacing: isCompactEditor ? 7 : 10) {
+            Menu {
                 if store.levels.isEmpty {
                     Text("No saved levels")
                 }
@@ -64,35 +66,55 @@ struct LevelCreatorView: View {
                         selectedID = nil
                     }
                 }
+            } label: {
+                actionLabel("Saved Levels", systemImage: "folder.fill")
             }
-            Button("New", systemImage: "doc.badge.plus") {
+            Button {
                 draft = .starter
                 draft.id = UUID()
                 savedDefinition = nil
                 selectedID = nil
+            } label: {
+                actionLabel("New", systemImage: "doc.badge.plus")
             }
-            Button("Words", systemImage: "text.book.closed.fill") {
+            Button {
                 vocabularyDraft = draft.vocabularyText
                 vocabularyError = nil
                 showsVocabularyEditor = true
+            } label: {
+                actionLabel("Words", systemImage: "text.book.closed.fill")
             }
-            Spacer(minLength: 8)
+            Spacer(minLength: isCompactEditor ? 0 : 8)
             if savedDefinition == draft {
-                Label("Saved", systemImage: "checkmark.circle.fill")
+                Label(isCompactEditor ? "" : "Saved", systemImage: "checkmark.circle.fill")
                     .font(.caption.bold())
                     .foregroundStyle(Color.storybookGreen)
                     .transition(.opacity)
             }
-            Button("Save", systemImage: "square.and.arrow.down.fill", action: saveDraft)
-                .buttonStyle(StorybookSecondaryButtonStyle())
-            Button("Play", systemImage: "play.fill", action: playDraft)
-                .buttonStyle(StorybookPrimaryButtonStyle())
-                .disabled(draft.validationMessage != nil)
+            Button(action: saveDraft) {
+                actionLabel("Save", systemImage: "square.and.arrow.down.fill")
+            }
+            .buttonStyle(StorybookSecondaryButtonStyle())
+            Button(action: playDraft) {
+                actionLabel("Play", systemImage: "play.fill")
+            }
+            .buttonStyle(StorybookPrimaryButtonStyle())
+            .disabled(draft.validationMessage != nil)
         }
         .foregroundStyle(Color.storybookInk)
         .padding(10)
         .background(Color.storybookPaper, in: RoundedRectangle(cornerRadius: 16))
         .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder
+    private func actionLabel(_ title: String, systemImage: String) -> some View {
+        if isCompactEditor {
+            Image(systemName: systemImage)
+                .accessibilityLabel(title)
+        } else {
+            Label(title, systemImage: systemImage)
+        }
     }
 
     private var vocabularyEditor: some View {
@@ -142,29 +164,33 @@ struct LevelCreatorView: View {
     }
 
     private var metadataBar: some View {
-        HStack(spacing: 10) {
-            TextField("Emoji", text: $draft.emoji)
-                .frame(width: 54)
-            TextField("Level title", text: $draft.title)
-                .frame(minWidth: 150)
-            LabeledContent("Finish") {
-                TextField("Finish", value: $draft.finishX, format: .number)
-                    .frame(width: 78)
+        ScrollView(.horizontal) {
+            HStack(spacing: 10) {
+                TextField("Emoji", text: $draft.emoji)
+                    .frame(width: 54)
+                TextField("Level title", text: $draft.title)
+                    .frame(minWidth: 150)
+                LabeledContent("Finish") {
+                    TextField("Finish", value: $draft.finishX, format: .number)
+                        .frame(width: 78)
+                }
+                Stepper("Difficulty \(draft.difficultyIndex + 1)",
+                        value: $draft.difficultyIndex, in: 0...11)
+                Spacer()
+                if let message = draft.validationMessage {
+                    Label(message, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(Color.storybookRed)
+                        .lineLimit(2)
+                } else {
+                    Label("Ready to play", systemImage: "checkmark.circle.fill")
+                        .font(.caption.bold())
+                        .foregroundStyle(Color.storybookGreen)
+                }
             }
-            Stepper("Difficulty \(draft.difficultyIndex + 1)",
-                    value: $draft.difficultyIndex, in: 0...11)
-            Spacer()
-            if let message = draft.validationMessage {
-                Label(message, systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(Color.storybookRed)
-                    .lineLimit(2)
-            } else {
-                Label("Ready to play", systemImage: "checkmark.circle.fill")
-                    .font(.caption.bold())
-                    .foregroundStyle(Color.storybookGreen)
-            }
+            .frame(minWidth: isCompactEditor ? 760 : 0)
         }
+        .scrollIndicators(.visible)
         .textFieldStyle(.roundedBorder)
         .padding(10)
         .background(Color.storybookPaper, in: RoundedRectangle(cornerRadius: 16))
@@ -270,39 +296,43 @@ struct LevelCreatorView: View {
     }
 
     private func selectedInspector(object: Binding<EditableLevelObject>) -> some View {
-        HStack(spacing: 10) {
-            Picker("Type", selection: object.kind) {
-                ForEach(EditableLevelObject.Kind.allCases) { kind in
-                    Label(kind.title, systemImage: kind.symbol).tag(kind)
+        ScrollView(.horizontal) {
+            HStack(spacing: 10) {
+                Picker("Type", selection: object.kind) {
+                    ForEach(EditableLevelObject.Kind.allCases) { kind in
+                        Label(kind.title, systemImage: kind.symbol).tag(kind)
+                    }
+                }
+                .frame(maxWidth: 210)
+                LabeledContent("X") {
+                    TextField("X", value: object.x, format: .number).frame(width: 66)
+                }
+                if supportsVerticalPosition(object.wrappedValue.kind) {
+                    LabeledContent("Y") {
+                        TextField("Y", value: object.y, format: .number).frame(width: 58)
+                    }
+                }
+                if supportsWidth(object.wrappedValue.kind) {
+                    LabeledContent("Width") {
+                        TextField("Width", value: object.width, format: .number).frame(width: 66)
+                    }
+                }
+                if object.wrappedValue.kind == .coin {
+                    TextField("Spanish", text: object.spanish).frame(minWidth: 90)
+                    Image(systemName: "arrow.right")
+                    TextField("English", text: object.english).frame(minWidth: 90)
+                }
+                Spacer()
+                Button(role: .destructive) {
+                    draft.objects.removeAll { $0.id == object.wrappedValue.id }
+                    selectedID = nil
+                } label: {
+                    Image(systemName: "trash.fill")
                 }
             }
-            .frame(maxWidth: 210)
-            LabeledContent("X") {
-                TextField("X", value: object.x, format: .number).frame(width: 66)
-            }
-            if supportsVerticalPosition(object.wrappedValue.kind) {
-                LabeledContent("Y") {
-                    TextField("Y", value: object.y, format: .number).frame(width: 58)
-                }
-            }
-            if supportsWidth(object.wrappedValue.kind) {
-                LabeledContent("Width") {
-                    TextField("Width", value: object.width, format: .number).frame(width: 66)
-                }
-            }
-            if object.wrappedValue.kind == .coin {
-                TextField("Spanish", text: object.spanish).frame(minWidth: 90)
-                Image(systemName: "arrow.right")
-                TextField("English", text: object.english).frame(minWidth: 90)
-            }
-            Spacer()
-            Button(role: .destructive) {
-                draft.objects.removeAll { $0.id == object.wrappedValue.id }
-                selectedID = nil
-            } label: {
-                Image(systemName: "trash.fill")
-            }
+            .frame(minWidth: object.wrappedValue.kind == .coin ? 720 : 500)
         }
+        .scrollIndicators(.visible)
         .textFieldStyle(.roundedBorder)
         .foregroundStyle(Color.storybookInk)
         .padding(10)
