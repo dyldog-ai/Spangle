@@ -28,6 +28,11 @@ struct LevelCreatorView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var draft = CustomLevelDefinition.empty
     @State private var selectedID: UUID?
+    @State private var selectedIDs = Set<UUID>()
+    @State private var isRectangleSelecting = false
+    @State private var selectionStart: CGPoint?
+    @State private var selectionCurrent: CGPoint?
+    @State private var confirmsDeleteSelection = false
     @State private var savedDefinition: CustomLevelDefinition?
     @State private var showsVocabularyEditor = false
     @State private var vocabularyDraft = ""
@@ -86,12 +91,22 @@ struct LevelCreatorView: View {
         .sheet(isPresented: $showsVocabularyEditor) {
             vocabularyEditor
         }
+        .confirmationDialog(
+            "Delete \(selectedIDs.count) selected objects?",
+            isPresented: $confirmsDeleteSelection,
+            titleVisibility: .visible
+        ) {
+            Button("Delete objects", role: .destructive, action: deleteSelectedObjects)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This cannot be undone.")
+        }
         .onAppear(perform: loadInitialLevelIfNeeded)
     }
 
     private var creatorTopBar: some View {
         HStack(spacing: isCompactEditor ? 7 : 10) {
-            VStack {
+            VStack(alignment: .leading) {
                 HStack {
                     Picker("Editor section", selection: $editorSection) {
                         ForEach(LevelEditorSection.allCases) { section in
@@ -165,7 +180,7 @@ struct LevelCreatorView: View {
                     draft = .empty
                     draft.id = UUID()
                     savedDefinition = nil
-                    selectedID = nil
+                    clearSelection()
                 } label: {
                     Label("New", systemImage: "doc.badge.plus")
                 }
@@ -177,6 +192,23 @@ struct LevelCreatorView: View {
                     showsVocabularyEditor = true
                 } label: {
                     Label("Words", systemImage: "text.book.closed.fill")
+                }
+                Button {
+                    if isRectangleSelecting {
+                        isRectangleSelecting = false
+                        selectionStart = nil
+                        selectionCurrent = nil
+                    } else {
+                        clearSelection()
+                        isRectangleSelecting = true
+                    }
+                } label: {
+                    Label(isRectangleSelecting ? "Drag a box" : "Select", systemImage: "rectangle.dashed")
+                }
+                if !selectedIDs.isEmpty {
+                    Button(role: .destructive) { confirmsDeleteSelection = true } label: {
+                        Label("Delete \(selectedIDs.count)", systemImage: "trash.fill")
+                    }
                 }
                 Text("\(draft.vocabularyCount) words · \(draft.objects.count) objects")
                     .font(.caption.monospacedDigit())
@@ -290,7 +322,7 @@ struct LevelCreatorView: View {
             }
             draft.replaceVocabulary(with: words)
         }
-        selectedID = nil
+        clearSelection()
         vocabularyError = nil
         showsVocabularyEditor = false
     }
@@ -303,9 +335,28 @@ struct LevelCreatorView: View {
                 ForEach($draft.objects) { $object in
                     timelineObject($object)
                 }
+                if let rectangle = selectionRectangle {
+                    Rectangle()
+                        .fill(Color.storybookBlue.opacity(0.18))
+                        .overlay(Rectangle().stroke(
+                            Color.storybookBlue,
+                            style: StrokeStyle(lineWidth: 2, dash: [6, 4])
+                        ))
+                        .frame(width: rectangle.width, height: rectangle.height)
+                        .position(x: rectangle.midX, y: rectangle.midY)
+                        .allowsHitTesting(false)
+                }
             }
+            .contentShape(Rectangle())
             .frame(width: timelineWidth, height: timelineHeight)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 4)
+                    .onChanged(updateRectangleSelection)
+                    .onEnded(finishRectangleSelection),
+                including: isRectangleSelecting ? .all : .none
+            )
         }
+        .scrollDisabled(isRectangleSelecting)
         .scrollIndicators(.visible)
         .background(Color.storybookPaper.opacity(0.9), in: RoundedRectangle(cornerRadius: 18))
         .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.storybookInk.opacity(0.45), lineWidth: 2))
@@ -347,9 +398,10 @@ struct LevelCreatorView: View {
 
     private func timelineObject(_ object: Binding<EditableLevelObject>) -> some View {
         let value = object.wrappedValue
+        let isSelected = selectedIDs.contains(value.id)
         return VStack(spacing: 1) {
             Image(systemName: value.kind.symbol)
-                .font(.system(size: selectedID == value.id ? 20 : 17, weight: .bold))
+                .font(.system(size: isSelected ? 20 : 17, weight: .bold))
             Text(value.kind.title)
                 .font(.system(size: 7, weight: .bold))
                 .lineLimit(1)
@@ -359,26 +411,43 @@ struct LevelCreatorView: View {
         .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 7))
         .overlay {
             RoundedRectangle(cornerRadius: 7)
-                .stroke(selectedID == value.id ? Color.storybookRed : Color.storybookInk.opacity(0.3),
-                        lineWidth: selectedID == value.id ? 3 : 1)
+                .stroke(isSelected ? Color.storybookRed : Color.storybookInk.opacity(0.3),
+                        lineWidth: isSelected ? 3 : 1)
         }
         .position(x: CGFloat(value.x) * horizontalScale, y: timelineY(for: value))
-        .onTapGesture { selectedID = value.id }
+        .onTapGesture { selectObject(value.id) }
         .gesture(
             DragGesture()
                 .onChanged { gesture in
-                    moveObject(object, from: value, by: gesture.translation)
+                    guard !isRectangleSelecting else { return }
+                    moveObject(from: value, by: gesture.translation)
                 }
                 .onEnded { gesture in
-                    moveObject(object, from: value, by: gesture.translation)
-                    dragOrigins[value.id] = nil
+                    guard !isRectangleSelecting else { return }
+                    moveObject(from: value, by: gesture.translation)
+                    clearDragOrigins(for: value.id)
                 }
         )
         .accessibilityLabel("\(value.kind.title) at \(Int(value.x))")
     }
 
     @ViewBuilder private var inspector: some View {
-        if let index = draft.objects.firstIndex(where: { $0.id == selectedID }) {
+        if selectedIDs.count > 1 {
+            HStack(spacing: 12) {
+                Label("\(selectedIDs.count) objects selected", systemImage: "rectangle.3.group.fill")
+                    .font(.headline)
+                Text("Drag any selected object to move the group.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("Delete selected", systemImage: "trash.fill", role: .destructive) {
+                    confirmsDeleteSelection = true
+                }
+            }
+            .foregroundStyle(Color.storybookInk)
+            .padding(12)
+            .background(Color.storybookPaper, in: RoundedRectangle(cornerRadius: 14))
+        } else if let index = draft.objects.firstIndex(where: { $0.id == selectedID }) {
             selectedInspector(object: $draft.objects[index])
         } else {
             HStack {
@@ -423,7 +492,7 @@ struct LevelCreatorView: View {
                 Spacer()
                 Button(role: .destructive) {
                     draft.objects.removeAll { $0.id == object.wrappedValue.id }
-                    selectedID = nil
+                    clearSelection()
                 } label: {
                     Image(systemName: "trash.fill")
                 }
@@ -472,7 +541,7 @@ struct LevelCreatorView: View {
               let level = store.levels.first(where: { $0.id == initialLevelID }) else { return }
         draft = level
         savedDefinition = level
-        selectedID = nil
+        clearSelection()
     }
 
     private func saveDraft() {
@@ -488,24 +557,99 @@ struct LevelCreatorView: View {
         onPlay(draft)
     }
 
-    private func moveObject(
-        _ object: Binding<EditableLevelObject>,
-        from value: EditableLevelObject,
-        by translation: CGSize
-    ) {
-        let origin = dragOrigins[value.id] ?? LevelObjectPosition(x: value.x, y: value.y)
-        if dragOrigins[value.id] == nil { dragOrigins[value.id] = origin }
-        object.wrappedValue.x = min(
-            draft.finishX - 100,
-            max(500, origin.x + Double(translation.width / horizontalScale))
+    private var selectionRectangle: CGRect? {
+        guard let selectionStart, let selectionCurrent else { return nil }
+        return CGRect(
+            x: selectionStart.x,
+            y: selectionStart.y,
+            width: selectionCurrent.x - selectionStart.x,
+            height: selectionCurrent.y - selectionStart.y
+        ).standardized
+    }
+
+    private func updateRectangleSelection(_ gesture: DragGesture.Value) {
+        guard isRectangleSelecting else { return }
+        selectionStart = gesture.startLocation
+        selectionCurrent = gesture.location
+    }
+
+    private func finishRectangleSelection(_ gesture: DragGesture.Value) {
+        guard isRectangleSelecting else { return }
+        selectionCurrent = gesture.location
+        let rectangle = selectionRectangle ?? .zero
+        selectedIDs = Set(draft.objects.filter { object in
+            rectangle.intersects(objectFrame(object))
+        }.map(\.id))
+        selectedID = selectedIDs.count == 1 ? selectedIDs.first : nil
+        selectionStart = nil
+        selectionCurrent = nil
+        isRectangleSelecting = false
+    }
+
+    private func objectFrame(_ object: EditableLevelObject) -> CGRect {
+        CGRect(
+            x: CGFloat(object.x) * horizontalScale - objectDisplayWidth(object) / 2,
+            y: timelineY(for: object) - 17.5,
+            width: objectDisplayWidth(object),
+            height: 35
         )
-        if supportsVerticalPosition(value.kind) {
-            object.wrappedValue.y = min(
-                340,
-                max(0, origin.y - Double(translation.height / verticalScale))
-            )
+    }
+
+    private func selectObject(_ id: UUID) {
+        if isRectangleSelecting {
+            if selectedIDs.contains(id) {
+                selectedIDs.remove(id)
+            } else {
+                selectedIDs.insert(id)
+            }
+            selectedID = selectedIDs.count == 1 ? selectedIDs.first : nil
+        } else if !selectedIDs.contains(id) || selectedIDs.count == 1 {
+            selectedIDs = [id]
+            selectedID = id
         }
-        selectedID = value.id
+    }
+
+    private func moveObject(from value: EditableLevelObject, by translation: CGSize) {
+        let movingIDs = selectedIDs.contains(value.id) ? selectedIDs : [value.id]
+        if !selectedIDs.contains(value.id) {
+            selectedIDs = [value.id]
+            selectedID = value.id
+        }
+        for object in draft.objects where movingIDs.contains(object.id) && dragOrigins[object.id] == nil {
+            dragOrigins[object.id] = LevelObjectPosition(x: object.x, y: object.y)
+        }
+        for index in draft.objects.indices where movingIDs.contains(draft.objects[index].id) {
+            let object = draft.objects[index]
+            guard let origin = dragOrigins[object.id] else { continue }
+            draft.objects[index].x = min(
+                draft.finishX - 100,
+                max(500, origin.x + Double(translation.width / horizontalScale))
+            )
+            if supportsVerticalPosition(object.kind) {
+                draft.objects[index].y = min(
+                    340,
+                    max(0, origin.y - Double(translation.height / verticalScale))
+                )
+            }
+        }
+    }
+
+    private func clearDragOrigins(for id: UUID) {
+        let movingIDs = selectedIDs.contains(id) ? selectedIDs : [id]
+        for movingID in movingIDs { dragOrigins[movingID] = nil }
+    }
+
+    private func clearSelection() {
+        selectedID = nil
+        selectedIDs.removeAll()
+        selectionStart = nil
+        selectionCurrent = nil
+        isRectangleSelecting = false
+    }
+
+    private func deleteSelectedObjects() {
+        draft.objects.removeAll { selectedIDs.contains($0.id) }
+        clearSelection()
     }
 
     private func add(_ kind: EditableLevelObject.Kind) {
@@ -517,6 +661,7 @@ struct LevelCreatorView: View {
             object.english = ""
         }
         draft.objects.append(object)
+        selectedIDs = [object.id]
         selectedID = object.id
     }
 

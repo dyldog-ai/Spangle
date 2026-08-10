@@ -16,4 +16,5 @@
 - [x] Level emoji should be selectable from a picker
 - [x] Generating the word list from a prompt shouldn't just put words in the manual list. The words should be generated dynamically, like the other levels with generated word lists
 - [x] Number of words generated should be defined by how many coins are in the level
-- [ ] Allow selecting multiple elements at once (by clicking and dragging to create a rectangle) so they can be moved or deleted together
+- [x] Allow selecting multiple elements at once (by clicking and dragging to create a rectangle) so they can be moved or deleted together
+- [ ] Created levels should be stored in iCloud and available across devices
