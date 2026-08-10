@@ -1,5 +1,7 @@
 import Foundation
+#if DEVELOPER_INTEGRATIONS
 import QueKit
+#endif
 import SpriteKit
 import SwiftUI
 
@@ -43,10 +45,12 @@ final class GameViewModel: ObservableObject {
 
     private let unlockKey = "highestUnlockedLevel"
     private let defaults: UserDefaults
+    #if DEVELOPER_INTEGRATIONS
     private let wordListStore: WordListStore
     private let generator: FoundationModelsWordListGenerator
-    private let feedback: GameFeedback
     private var generationTask: Task<Void, Never>?
+    #endif
+    private let feedback: GameFeedback
     private var finalQuizQueue = QuizWordQueue()
     private var isFinalQuizActive = false
     private var mode: GameMode = .campaign
@@ -76,6 +80,7 @@ final class GameViewModel: ObservableObject {
     var dailyBestScore: Int { defaults.integer(forKey: dailyScoreKey()) }
     var marathonBestScore: Int { defaults.integer(forKey: "bestScore.marathon") }
 
+    #if DEVELOPER_INTEGRATIONS
     init(
         wordListStore: WordListStore = ICloudWordListStore(),
         generator: FoundationModelsWordListGenerator = FoundationModelsWordListGenerator(),
@@ -93,6 +98,25 @@ final class GameViewModel: ObservableObject {
         scene.scaleMode = .resizeFill
         unlockedThrough = defaults.integer(forKey: unlockKey)
         phase = .menu
+        finishInitialization()
+    }
+    #else
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        settings = GameSettings(defaults: defaults)
+        learning = LearningProgressStore(defaults: defaults)
+        characters = CharacterStore(defaults: defaults)
+        feedback = GameFeedback(settings: settings)
+        themes = Campaign.themes
+        scene = GameScene(size: CGSize(width: 1024, height: 576))
+        scene.scaleMode = .resizeFill
+        unlockedThrough = defaults.integer(forKey: unlockKey)
+        phase = .menu
+        finishInitialization()
+    }
+    #endif
+
+    private func finishInitialization() {
         scene.game = self
         scene.load(
             words: Campaign.themes[0].words,
@@ -106,10 +130,12 @@ final class GameViewModel: ObservableObject {
     // MARK: - QueKit levels
 
     func reloadQueKitLevels() {
+        #if DEVELOPER_INTEGRATIONS
         let userLists = (try? wordListStore.userLists()) ?? []
         let queKitThemes = (QueListLibrary.allBundledLists + userLists)
             .compactMap { $0.spangleTheme() }
         themes = Campaign.themes + queKitThemes
+        #endif
     }
 
     func isLocked(_ index: Int) -> Bool {
@@ -121,6 +147,7 @@ final class GameViewModel: ObservableObject {
         return defaults.integer(forKey: starRatingKey(for: themes[index]))
     }
 
+    #if DEVELOPER_INTEGRATIONS
     private func generateAndLoadLevel(at index: Int, list: WordList) {
         guard generator.isAvailable else {
             phase = .listError(message: "Apple Intelligence is unavailable, so “\(list.name)” can’t be generated on this device.")
@@ -156,12 +183,14 @@ final class GameViewModel: ObservableObject {
             }
         }
     }
+    #endif
 
     // MARK: - Game selection
 
     func selectLevel(_ index: Int) {
         guard themes.indices.contains(index), !isLocked(index) else { return }
         let selectedTheme = themes[index]
+        #if DEVELOPER_INTEGRATIONS
         if let list = selectedTheme.sourceList, list.isGenerated {
             generateAndLoadLevel(at: index, list: list)
         } else {
@@ -175,6 +204,16 @@ final class GameViewModel: ObservableObject {
                 eyebrow: index < Campaign.themes.count ? "Nivel \(index + 1)" : "QueKit Challenge"
             )
         }
+        #else
+        loadLevel(
+            index,
+            theme: selectedTheme,
+            mode: .campaign,
+            difficultyIndex: min(index, 11),
+            seed: freshSeed(for: selectedTheme.id),
+            eyebrow: "Nivel \(index + 1)"
+        )
+        #endif
     }
 
     func startDailyChallenge() {
@@ -236,8 +275,10 @@ final class GameViewModel: ObservableObject {
     }
 
     func goToMenu() {
+        #if DEVELOPER_INTEGRATIONS
         generationTask?.cancel()
         generationTask = nil
+        #endif
         scene.pauseRun()
         phase = .menu
         activeTheme = nil

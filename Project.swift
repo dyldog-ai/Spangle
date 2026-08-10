@@ -1,14 +1,67 @@
+import Foundation
 import ProjectDescription
+
+// Developer-only QueKit import tooling and QYay notes are intentionally absent
+// from normal generated projects and every production archive. Opt in locally
+// with: SPANGLE_DEVELOPER_INTEGRATIONS=1 tuist generate --no-open
+let includesDeveloperIntegrations = ProcessInfo.processInfo.environment[
+    "SPANGLE_DEVELOPER_INTEGRATIONS"
+] == "1"
 
 let qyayICloudContainer = "iCloud.com.qyay.QYay"
 let queKitICloudContainer = "iCloud.com.dylanelliott.QueKit"
 
+let packages: [Package] = includesDeveloperIntegrations
+    ? [.local(path: "../QueKit"), .local(path: "../QYayKit")]
+    : []
+let appDependencies: [TargetDependency] = includesDeveloperIntegrations
+    ? [.package(product: "QueKit"), .package(product: "QYayKit")]
+    : []
+
+var infoPlistValues: [String: Plist.Value] = [
+    "UILaunchScreen": [:],
+    "CFBundleDisplayName": "Spangle",
+    "UISupportedInterfaceOrientations": [
+        "UIInterfaceOrientationLandscapeLeft",
+        "UIInterfaceOrientationLandscapeRight",
+    ],
+]
+var entitlementsValues: [String: Plist.Value] = [:]
+var appSettings: SettingsDictionary = [
+    "GENERATE_INFOPLIST_FILE": "YES",
+    "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
+    "CODE_SIGN_STYLE": "Automatic",
+    "DEVELOPMENT_TEAM": "6CW3378X23",
+]
+
+if includesDeveloperIntegrations {
+    infoPlistValues["NSUbiquitousContainers"] = [
+        qyayICloudContainer: [
+            "NSUbiquitousContainerName": "QYay",
+            "NSUbiquitousContainerIsDocumentScopePublic": true,
+        ],
+        queKitICloudContainer: [
+            "NSUbiquitousContainerName": "QueKit",
+            "NSUbiquitousContainerIsDocumentScopePublic": true,
+        ],
+    ]
+    entitlementsValues = [
+        "com.apple.developer.icloud-container-identifiers": [
+            .string(qyayICloudContainer),
+            .string(queKitICloudContainer),
+        ],
+        "com.apple.developer.icloud-services": ["CloudDocuments"],
+        "com.apple.developer.ubiquity-container-identifiers": [
+            .string(qyayICloudContainer),
+            .string(queKitICloudContainer),
+        ],
+    ]
+    appSettings["SWIFT_ACTIVE_COMPILATION_CONDITIONS"] = "$(inherited) DEVELOPER_INTEGRATIONS"
+}
+
 let project = Project(
     name: "Spangle",
-    packages: [
-        .local(path: "../QueKit"),
-        .local(path: "../QYayKit"),
-    ],
+    packages: packages,
     targets: [
         .target(
             name: "Spangle",
@@ -16,49 +69,14 @@ let project = Project(
             product: .app,
             bundleId: "com.spangle.app",
             deploymentTargets: .multiplatform(iOS: "17.0", macOS: "14.0"),
-            infoPlist: .extendingDefault(with: [
-                "UILaunchScreen": [:],
-                "CFBundleDisplayName": "Spangle",
-                "UISupportedInterfaceOrientations": [
-                    "UIInterfaceOrientationLandscapeLeft",
-                    "UIInterfaceOrientationLandscapeRight",
-                ],
-                "NSUbiquitousContainers": [
-                    qyayICloudContainer: [
-                        "NSUbiquitousContainerName": "QYay",
-                        "NSUbiquitousContainerIsDocumentScopePublic": true,
-                    ],
-                    queKitICloudContainer: [
-                        "NSUbiquitousContainerName": "QueKit",
-                        "NSUbiquitousContainerIsDocumentScopePublic": true,
-                    ],
-                ],
-            ]),
+            infoPlist: .extendingDefault(with: infoPlistValues),
             buildableFolders: [
                 "Spangle/Sources",
                 "Spangle/Resources",
             ],
-            entitlements: .dictionary([
-                "com.apple.developer.icloud-container-identifiers": .array([
-                    .string(qyayICloudContainer),
-                    .string(queKitICloudContainer),
-                ]),
-                "com.apple.developer.icloud-services": .array([.string("CloudDocuments")]),
-                "com.apple.developer.ubiquity-container-identifiers": .array([
-                    .string(qyayICloudContainer),
-                    .string(queKitICloudContainer),
-                ]),
-            ]),
-            dependencies: [
-                .package(product: "QueKit"),
-                .package(product: "QYayKit"),
-            ],
-            settings: .settings(base: [
-                "GENERATE_INFOPLIST_FILE": "YES",
-                "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
-                "CODE_SIGN_STYLE": "Automatic",
-                "DEVELOPMENT_TEAM": "6CW3378X23",
-            ])
+            entitlements: .dictionary(entitlementsValues),
+            dependencies: appDependencies,
+            settings: .settings(base: appSettings)
         ),
         .target(
             name: "SpangleTests",

@@ -1,4 +1,6 @@
+#if DEVELOPER_INTEGRATIONS
 import QYayKit
+#endif
 import SpriteKit
 import SwiftUI
 
@@ -13,15 +15,19 @@ struct GameView: View {
     @State private var jumpPressActive = false
 
     var body: some View {
-        #if os(iOS)
-        gameContent
-            .qyayNotesOnShake(configuration: .init(appName: "Spangle"))
+        #if DEVELOPER_INTEGRATIONS
+            #if os(iOS)
+            gameContent
+                .qyayNotesOnShake(configuration: .init(appName: "Spangle"))
+            #else
+            gameContent
+                .qyayNotesSheet(
+                    isPresented: $showsDeveloperNotes,
+                    configuration: .init(appName: "Spangle")
+                )
+            #endif
         #else
         gameContent
-            .qyayNotesSheet(
-                isPresented: $showsDeveloperNotes,
-                configuration: .init(appName: "Spangle")
-            )
         #endif
     }
 

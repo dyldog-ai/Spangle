@@ -29,11 +29,15 @@ First-run instructions, bidirectional quiz labels, accessibility values, keyboar
 
 ## Run it
 
-Both `QueKit` and `QYayKit` are sibling local Swift package dependencies. A signed
-build needs the QueKit and QYay iCloud containers configured for the app identifier.
+Normal generation produces the production project with no QueKit/QYayKit packages,
+code, resources, or iCloud entitlements. Developer integrations are explicit opt-in:
 
 ```bash
+# Production/default
 tuist generate --no-open
+
+# Local developer build with QueKit lists and QYay notes
+SPANGLE_DEVELOPER_INTEGRATIONS=1 tuist generate --no-open
 # macOS
 xcodebuild build -workspace Spangle.xcworkspace -scheme Spangle -destination "platform=macOS"
 # iOS simulator
@@ -59,13 +63,11 @@ an enemy defeats it and rebounds the player. The seed makes a retry identical an
 while score combos, results, best scores, persistent ratings, and the repeatable star
 bank reward mastery and replays.
 
-Spangle also imports every Spanish ↔ English list from the sibling `QueKit` package—including
-Que’s bundled lists and user-created iCloud lists—as additional, always-unlocked
-levels. The menu refreshes the shared collection when it opens.
-
-Prompt lists generate 16 fresh word pairs with Apple Foundation Models before their
-level begins. Fixed lists start immediately. QueKit lists are shared through the
-`iCloud.com.dylanelliott.QueKit` iCloud Documents container.
+Opt-in developer builds can import every Spanish ↔ English list from the sibling
+`QueKit` package—including bundled lists and user-created iCloud lists—as additional,
+always-unlocked levels. Prompt lists generate 16 fresh word pairs with Apple Foundation
+Models. These tools, QYay developer notes, their resources, and both iCloud containers
+are absent from normal production projects and archives.
 
 ## Art and sound
 

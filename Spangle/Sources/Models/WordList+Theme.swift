@@ -1,8 +1,9 @@
+#if DEVELOPER_INTEGRATIONS
 import Foundation
 import QueKit
 
 extension WordList {
-    /// Converts Spanish ↔ English QueKit lists into Spangle levels.
+    /// Converts Spanish ↔ English QueKit lists into developer-build levels.
     func spangleTheme(words generatedWords: [Word]? = nil) -> Theme? {
         let sourceWords = generatedWords ?? words
         let spanishIsFront = front.localeIdentifier.hasPrefix("es") && back.localeIdentifier.hasPrefix("en")
@@ -31,3 +32,4 @@ extension WordList {
         )
     }
 }
+#endif
