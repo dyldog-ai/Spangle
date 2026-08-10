@@ -35,7 +35,11 @@ struct LevelCreatorView: View {
     @State private var loadedInitialLevel = false
     @State private var editorSection = LevelEditorSection.level
 
+    private let levelEmojis = ["🛠️", "🌟", "🏰", "🌳", "🌊", "🏜️", "❄️", "🌋", "🌙", "🎨", "🎵", "⚽️", "🐾", "🚀", "🗺️", "📚"]
     private let horizontalScale: CGFloat = 0.16
+    private var availableLevelEmojis: [String] {
+        levelEmojis.contains(draft.emoji) || draft.emoji.isEmpty ? levelEmojis : [draft.emoji] + levelEmojis
+    }
     private var isCompactEditor: Bool { verticalSizeClass == .compact }
     private var verticalScale: CGFloat { isCompactEditor ? 0.38 : 0.52 }
     private var timelineHeight: CGFloat { isCompactEditor ? 150 : 190 }
@@ -128,7 +132,14 @@ struct LevelCreatorView: View {
         switch editorSection {
         case .level:
             HStack(spacing: 8) {
-                TextField("Emoji", text: $draft.emoji).frame(width: 54)
+                Picker("Level emoji", selection: $draft.emoji) {
+                    ForEach(availableLevelEmojis, id: \.self) { emoji in
+                        Text(emoji).tag(emoji)
+                    }
+                }
+                .pickerStyle(.menu)
+                .frame(width: 54)
+                .accessibilityValue(draft.emoji)
                 TextField("Level title", text: $draft.title).frame(width: 150)
                 LabeledContent("Finish") {
                     TextField("Finish", value: $draft.finishX, format: .number).frame(width: 72)
