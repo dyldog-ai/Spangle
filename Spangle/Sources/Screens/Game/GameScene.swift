@@ -50,6 +50,8 @@ final class GameScene: SKScene {
     private var springs: [SpringNode] = []
     private var challengeStars: [ChallengeStarNode] = []
     private var enemies: [EnemyNode] = []
+    private var platforms: [PlatformNode] = []
+    private var winds: [WindNode] = []
     private var shields: [ShieldNode] = []
     private var checkpoints: [CheckpointNode] = []
     private var spikes: [CGFloat] = []
@@ -98,8 +100,43 @@ final class GameScene: SKScene {
 
     private final class EnemyNode {
         let x: CGFloat
+        let kind: EnemyKind
         let node: SKNode
-        init(x: CGFloat, node: SKNode) { self.x = x; self.node = node }
+        var defeated = false
+        init(x: CGFloat, kind: EnemyKind, node: SKNode) {
+            self.x = x
+            self.kind = kind
+            self.node = node
+        }
+    }
+
+    private final class PlatformNode {
+        let x: CGFloat
+        let y: CGFloat
+        let width: CGFloat
+        let kind: PlatformKind
+        let node: SKNode
+        var crumbling = false
+        var broken = false
+
+        init(x: CGFloat, y: CGFloat, width: CGFloat, kind: PlatformKind, node: SKNode) {
+            self.x = x
+            self.y = y
+            self.width = width
+            self.kind = kind
+            self.node = node
+        }
+    }
+
+    private final class WindNode {
+        let x: CGFloat
+        let width: CGFloat
+        let node: SKNode
+        init(x: CGFloat, width: CGFloat, node: SKNode) {
+            self.x = x
+            self.width = width
+            self.node = node
+        }
     }
 
     private final class ShieldNode {
@@ -125,6 +162,8 @@ final class GameScene: SKScene {
         let gates: [Bool]
         let springs: [Bool]
         let stars: [Bool]
+        let enemies: [Bool]
+        let platforms: [Bool]
         let shields: [Bool]
         let checkpoints: [Bool]
         let quizQueue: QuizWordQueue
@@ -208,6 +247,8 @@ final class GameScene: SKScene {
         springs.removeAll()
         challengeStars.removeAll()
         enemies.removeAll()
+        platforms.removeAll()
+        winds.removeAll()
         shields.removeAll()
         checkpoints.removeAll()
         spikes.removeAll()
@@ -237,10 +278,18 @@ final class GameScene: SKScene {
                 let node = makeChallengeStar(at: x)
                 worldNode.addChild(node)
                 challengeStars.append(ChallengeStarNode(x: x, y: y, node: node))
-            case let .enemy(x):
-                let node = makeEnemy(at: x)
+            case let .enemy(x, kind):
+                let node = makeEnemy(at: x, kind: kind)
                 worldNode.addChild(node)
-                enemies.append(EnemyNode(x: x, node: node))
+                enemies.append(EnemyNode(x: x, kind: kind, node: node))
+            case let .platform(x, y, width, kind):
+                let node = makePlatform(at: x, width: width, kind: kind)
+                worldNode.addChild(node)
+                platforms.append(PlatformNode(x: x, y: y, width: width, kind: kind, node: node))
+            case let .wind(x, width):
+                let node = makeWind(at: x, width: width)
+                worldNode.addChild(node)
+                winds.append(WindNode(x: x, width: width, node: node))
             case let .shield(x, y):
                 let node = makeShield(at: x)
                 worldNode.addChild(node)
@@ -466,7 +515,7 @@ final class GameScene: SKScene {
         return node
     }
 
-    private func makeEnemy(at x: CGFloat) -> SKNode {
+    private func makeEnemy(at x: CGFloat, kind: EnemyKind) -> SKNode {
         let node = SKNode()
         let ink = SKColor(red: 0.2, green: 0.09, blue: 0.2, alpha: 1)
         let shadow = SKShapeNode(ellipseOf: CGSize(width: 55, height: 11))
@@ -474,36 +523,138 @@ final class GameScene: SKScene {
         shadow.strokeColor = .clear
         shadow.position.y = 3
         node.addChild(shadow)
-        let body = SKShapeNode(ellipseOf: CGSize(width: 58, height: 45))
-        body.fillColor = SKColor(red: 0.49, green: 0.2, blue: 0.58, alpha: 1)
+
+        let body: SKShapeNode
+        switch kind {
+        case .trickster:
+            body = SKShapeNode(ellipseOf: CGSize(width: 58, height: 45))
+            body.fillColor = SKColor(red: 0.49, green: 0.2, blue: 0.58, alpha: 1)
+            let mask = SKShapeNode(ellipseOf: CGSize(width: 43, height: 19))
+            mask.fillColor = SKColor(red: 0.17, green: 0.11, blue: 0.22, alpha: 1)
+            mask.strokeColor = .clear
+            mask.position.y = 30
+            node.addChild(mask)
+        case .hopper:
+            body = SKShapeNode(circleOfRadius: 24)
+            body.fillColor = SKColor(red: 0.88, green: 0.25, blue: 0.16, alpha: 1)
+            for direction in [-1.0, 1.0] as [CGFloat] {
+                let leg = SKShapeNode()
+                let path = CGMutablePath()
+                path.move(to: CGPoint(x: direction * 13, y: 12))
+                path.addLine(to: CGPoint(x: direction * 24, y: 2))
+                path.addLine(to: CGPoint(x: direction * 31, y: 8))
+                leg.path = path
+                leg.strokeColor = ink
+                leg.lineWidth = 4
+                leg.lineCap = .round
+                node.addChild(leg)
+            }
+        case .flyer:
+            body = SKShapeNode(ellipseOf: CGSize(width: 54, height: 40))
+            body.fillColor = SKColor(red: 0.12, green: 0.5, blue: 0.66, alpha: 1)
+            shadow.isHidden = true
+            for direction in [-1.0, 1.0] as [CGFloat] {
+                let wing = SKShapeNode(ellipseOf: CGSize(width: 30, height: 15))
+                wing.fillColor = SKColor(red: 0.65, green: 0.9, blue: 0.94, alpha: 1)
+                wing.strokeColor = ink
+                wing.lineWidth = 1.5
+                wing.position = CGPoint(x: direction * 31, y: 28)
+                wing.zRotation = direction * 0.2
+                node.addChild(wing)
+                wing.run(.repeatForever(.sequence([
+                    .rotate(toAngle: direction * 0.45, duration: 0.1),
+                    .rotate(toAngle: direction * -0.05, duration: 0.1),
+                ])))
+            }
+        }
         body.strokeColor = ink
         body.lineWidth = 2.5
         body.position.y = 25
         node.addChild(body)
-        let mask = SKShapeNode(ellipseOf: CGSize(width: 43, height: 19))
-        mask.fillColor = SKColor(red: 0.17, green: 0.11, blue: 0.22, alpha: 1)
-        mask.strokeColor = .clear
-        mask.position.y = 30
-        node.addChild(mask)
+
         for eyeX in [-10.0, 10.0] as [CGFloat] {
             let eye = SKShapeNode(ellipseOf: CGSize(width: 8, height: 6))
-            eye.fillColor = SKColor(red: 1, green: 0.83, blue: 0.24, alpha: 1)
+            eye.fillColor = kind == .flyer ? .white : SKColor(red: 1, green: 0.83, blue: 0.24, alpha: 1)
             eye.strokeColor = .clear
             eye.position = CGPoint(x: eyeX, y: 31)
             node.addChild(eye)
         }
-        for footX in [-17.0, 17.0] as [CGFloat] {
-            let foot = SKShapeNode(ellipseOf: CGSize(width: 19, height: 8))
-            foot.fillColor = ink
-            foot.strokeColor = .clear
-            foot.position = CGPoint(x: footX, y: 6)
-            node.addChild(foot)
+        if kind != .flyer {
+            for footX in [-17.0, 17.0] as [CGFloat] {
+                let foot = SKShapeNode(ellipseOf: CGSize(width: 19, height: 8))
+                foot.fillColor = ink
+                foot.strokeColor = .clear
+                foot.position = CGPoint(x: footX, y: 6)
+                node.addChild(foot)
+            }
         }
         body.run(.repeatForever(.sequence([
             .moveBy(x: 0, y: 3, duration: 0.22), .moveBy(x: 0, y: -3, duration: 0.22),
         ])))
         node.name = "enemy"
         node.position = CGPoint(x: x, y: 0)
+        return node
+    }
+
+    private func makePlatform(at x: CGFloat, width: CGFloat, kind: PlatformKind) -> SKNode {
+        let node = SKNode()
+        let ink = SKColor(red: 0.28, green: 0.14, blue: 0.08, alpha: 1)
+        let shadow = SKShapeNode(ellipseOf: CGSize(width: width * 0.88, height: 13))
+        shadow.fillColor = ink.withAlphaComponent(0.18)
+        shadow.strokeColor = .clear
+        shadow.position.y = -12
+        node.addChild(shadow)
+        let slab = SKShapeNode(rectOf: CGSize(width: width, height: 25), cornerRadius: 10)
+        slab.fillColor = kind == .crumbling ? skin.soil.lighter(0.16) : skin.grass
+        slab.strokeColor = ink
+        slab.lineWidth = 2.4
+        node.addChild(slab)
+        let top = SKShapeNode(rectOf: CGSize(width: width - 10, height: 6), cornerRadius: 3)
+        top.fillColor = kind == .crumbling ? skin.celestial : skin.grass.lighter(0.35)
+        top.strokeColor = .clear
+        top.position.y = 8
+        node.addChild(top)
+        if kind == .crumbling {
+            for offset in [-0.25, 0.08, 0.32] as [CGFloat] {
+                let crack = SKShapeNode()
+                let path = CGMutablePath()
+                path.move(to: CGPoint(x: width * offset, y: 8))
+                path.addLine(to: CGPoint(x: width * offset - 5, y: 1))
+                path.addLine(to: CGPoint(x: width * offset + 2, y: -7))
+                crack.path = path
+                crack.strokeColor = ink.withAlphaComponent(0.55)
+                crack.lineWidth = 1.5
+                node.addChild(crack)
+            }
+        }
+        node.name = "platform"
+        node.position.x = x
+        return node
+    }
+
+    private func makeWind(at x: CGFloat, width: CGFloat) -> SKNode {
+        let node = SKNode()
+        let color = skin.celestial.lighter(0.25)
+        for index in 0..<6 {
+            let swirl = SKShapeNode()
+            let path = CGMutablePath()
+            let localX = -width / 2 + width * (CGFloat(index) + 0.5) / 6
+            path.move(to: CGPoint(x: localX - 18, y: 20))
+            path.addCurve(to: CGPoint(x: localX + 12, y: 150),
+                          control1: CGPoint(x: localX + 34, y: 55),
+                          control2: CGPoint(x: localX - 30, y: 105))
+            swirl.path = path
+            swirl.strokeColor = color.withAlphaComponent(0.4)
+            swirl.lineWidth = 3
+            swirl.lineCap = .round
+            node.addChild(swirl)
+            swirl.run(.repeatForever(.sequence([
+                .moveBy(x: 0, y: 55, duration: 0.85 + Double(index) * 0.04),
+                .moveBy(x: 0, y: -55, duration: 0),
+            ])))
+        }
+        node.name = "wind"
+        node.position.x = x + width / 2
         return node
     }
 
@@ -693,7 +844,9 @@ final class GameScene: SKScene {
         for gate in gates { gate.node.position.y = 0 }
         for spring in springs { spring.node.position.y = 0 }
         for star in challengeStars { star.node.position.y = star.y }
-        for enemy in enemies { enemy.node.position.y = 0 }
+        for enemy in enemies { enemy.node.position.y = enemyHeight(enemy) }
+        for platform in platforms { platform.node.position.y = platform.y - 12 }
+        for wind in winds { wind.node.position.y = 0 }
         for shield in shields { shield.node.position.y = shield.y }
         for checkpoint in checkpoints { checkpoint.node.position.y = 0 }
     }
@@ -710,7 +863,10 @@ final class GameScene: SKScene {
         runTime += dt
         invulnerabilityRemaining = max(0, invulnerabilityRemaining - dt)
 
-        // Vertical integration with variable-height jump.
+        let worldX = scroll + playerScreenX
+        let previousPlayerY = playerY
+
+        // Vertical integration with variable-height jump and visible updrafts.
         let g: CGFloat
         if holding && holdTime < maxHold {
             holdTime += dt
@@ -719,18 +875,23 @@ final class GameScene: SKScene {
             g = gravity
         }
         vy -= g * CGFloat(dt)
+        if isInsideWind(worldX), !onGround {
+            vy = min(900, vy + 1_900 * CGFloat(dt))
+        }
         playerY += vy * CGFloat(dt)
 
-        let worldX = scroll + playerScreenX
-        let grounded = level.hasGround(at: worldX)
-
-        if playerY <= 0 {
-            if grounded && vy <= 0 {
+        if let platform = landingPlatform(at: worldX, from: previousPlayerY, to: playerY) {
+            playerY = platform.y
+            vy = 0
+            onGround = true
+            beginCrumbling(platform)
+        } else if playerY <= 0 {
+            if level.hasGround(at: worldX), vy <= 0 {
                 playerY = 0
                 vy = 0
                 onGround = true
-            } else if !grounded {
-                onGround = false // fall through the gap
+            } else {
+                onGround = false
             }
         } else {
             onGround = false
@@ -779,12 +940,71 @@ final class GameScene: SKScene {
         player.position = CGPoint(x: playerScreenX, y: groundTopY + playerSize / 2 + playerY)
         player.zRotation = onGround ? 0 : max(-0.5, -vy / 4000)
         let shadowScale = max(0.42, 1 - max(0, playerY) / 380)
-        playerShadow.position = CGPoint(x: playerScreenX, y: groundTopY + 2)
+        playerShadow.position = CGPoint(x: playerScreenX,
+                                        y: groundTopY + (onGround ? playerY : 0) + 2)
         playerShadow.xScale = shadowScale
         playerShadow.alpha = max(0.08, 0.3 - max(0, playerY) / 1_200)
-        for enemy in enemies {
-            enemy.node.position.x = enemy.x + sin(runTime * 3) * 42
+        for enemy in enemies where !enemy.defeated {
+            switch enemy.kind {
+            case .trickster:
+                enemy.node.position.x = enemy.x + sin(runTime * 3) * 42
+                enemy.node.position.y = 0
+            case .hopper:
+                enemy.node.position.x = enemy.x + sin(runTime * 1.5) * 18
+                enemy.node.position.y = abs(sin(runTime * 2.35)) * 92
+            case .flyer:
+                enemy.node.position.x = enemy.x + sin(runTime * 2.1) * 54
+                enemy.node.position.y = 145 + sin(runTime * 2.8) * 34
+            }
         }
+    }
+
+    private func enemyHeight(_ enemy: EnemyNode) -> CGFloat {
+        switch enemy.kind {
+        case .trickster: 0
+        case .hopper: abs(sin(runTime * 2.35)) * 92
+        case .flyer: 145 + sin(runTime * 2.8) * 34
+        }
+    }
+
+    private func isInsideWind(_ worldX: CGFloat) -> Bool {
+        winds.contains { worldX >= $0.x && worldX <= $0.x + $0.width }
+    }
+
+    private func landingPlatform(
+        at worldX: CGFloat,
+        from previousY: CGFloat,
+        to currentY: CGFloat
+    ) -> PlatformNode? {
+        guard vy <= 0 else { return nil }
+        return platforms
+            .filter { platform in
+                !platform.broken
+                    && abs(platform.x - worldX) <= platform.width / 2 + playerSize * 0.22
+                    && previousY >= platform.y - 2
+                    && currentY <= platform.y + 8
+            }
+            .max { $0.y < $1.y }
+    }
+
+    private func beginCrumbling(_ platform: PlatformNode) {
+        guard platform.kind == .crumbling, !platform.crumbling else { return }
+        platform.crumbling = true
+        platform.node.run(.sequence([
+            .wait(forDuration: 0.2),
+            .repeat(.sequence([
+                .moveBy(x: -3, y: 0, duration: 0.035),
+                .moveBy(x: 6, y: 0, duration: 0.035),
+                .moveBy(x: -3, y: 0, duration: 0.035),
+            ]), count: 3),
+            .run { [weak platform] in platform?.broken = true },
+            .group([
+                .moveBy(x: 0, y: -100, duration: 0.38),
+                .rotate(byAngle: 0.18, duration: 0.38),
+                .fadeOut(withDuration: 0.3),
+            ]),
+            .removeFromParent(),
+        ]))
     }
 
     private func checkShields(worldX: CGFloat) {
@@ -815,10 +1035,39 @@ final class GameScene: SKScene {
     }
 
     private func checkEnemies(worldX: CGFloat) {
-        guard invulnerabilityRemaining <= 0, playerY < 46 else { return }
-        for enemy in enemies where abs(enemy.node.position.x - worldX) < 30 {
+        guard invulnerabilityRemaining <= 0 else { return }
+        for enemy in enemies where !enemy.defeated && abs(enemy.node.position.x - worldX) < 31 {
+            let enemyY = enemy.node.position.y
+            let overlapsVertically = playerY < enemyY + 48 && playerY + playerSize > enemyY + 4
+            guard overlapsVertically else { continue }
+
+            if vy < 0, playerY >= enemyY + 27 {
+                enemy.defeated = true
+                vy = 690
+                onGround = false
+                spawnBurst(
+                    at: CGPoint(x: enemy.node.position.x - scroll,
+                                y: groundTopY + enemyY + 26),
+                    colors: [skin.celestial, skin.accent, .white],
+                    count: 13
+                )
+                enemy.node.run(.sequence([
+                    .group([.scaleY(to: 0.15, duration: 0.12),
+                            .fadeOut(withDuration: 0.22)]),
+                    .removeFromParent(),
+                ]))
+                game?.defeatedEnemy()
+                continue
+            }
+
             if consumeShield() { return }
-            die(reason: "A trickster caught you!")
+            let reason: String
+            switch enemy.kind {
+            case .trickster: reason = "A masked trickster caught you!"
+            case .hopper: reason = "A fire hopper bounced into you!"
+            case .flyer: reason = "A sky swooper clipped you!"
+            }
+            die(reason: reason)
             return
         }
     }
@@ -912,6 +1161,8 @@ final class GameScene: SKScene {
                 gates: gates.map(\.passed),
                 springs: springs.map(\.activated),
                 stars: challengeStars.map(\.collected),
+                enemies: enemies.map(\.defeated),
+                platforms: platforms.map(\.broken),
                 shields: shields.map(\.collected),
                 checkpoints: checkpoints.map(\.activated),
                 quizQueue: quizWordQueue,
@@ -1033,6 +1284,11 @@ final class GameScene: SKScene {
         rebuild()
     }
 
+    func setCharacterDesign(_ design: CharacterDesign) {
+        player.apply(design: design)
+        player.setAlive()
+    }
+
     /// Start (or resume from the level intro) running the level.
     func begin() {
         active = true
@@ -1101,11 +1357,15 @@ final class GameScene: SKScene {
         restore(snapshot.gates, to: gates, keyPath: \.passed)
         restore(snapshot.springs, to: springs, keyPath: \.activated)
         restore(snapshot.stars, to: challengeStars, keyPath: \.collected)
+        restore(snapshot.enemies, to: enemies, keyPath: \.defeated)
+        restore(snapshot.platforms, to: platforms, keyPath: \.broken)
         restore(snapshot.shields, to: shields, keyPath: \.collected)
         restore(snapshot.checkpoints, to: checkpoints, keyPath: \.activated)
         for coin in coins where coin.collected { coin.node.removeFromParent() }
         for gate in gates where gate.passed { gate.node.alpha = 0.45 }
         for star in challengeStars where star.collected { star.node.removeFromParent() }
+        for enemy in enemies where enemy.defeated { enemy.node.removeFromParent() }
+        for platform in platforms where platform.broken { platform.node.removeFromParent() }
         for shield in shields where shield.collected { shield.node.removeFromParent() }
         for checkpoint in checkpoints where checkpoint.activated { checkpoint.node.alpha = 0.45 }
         player.setAlive()

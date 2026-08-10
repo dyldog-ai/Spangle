@@ -31,9 +31,13 @@ struct ResultsOverlay: View {
                         result("Accuracy", "\(summary.accuracy)%", icon: "checkmark.circle.fill")
                         result("Time", durationText, icon: "clock.fill")
                     }
-                    Text("\(summary.wordsCollected) word coins · \(summary.correctAnswers) correct")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(Color.storybookInk.opacity(0.62))
+                    HStack(spacing: 12) {
+                        Text("\(summary.wordsCollected) word coins · \(summary.correctAnswers) correct")
+                        Label("+\(summary.stars) banked", systemImage: "star.fill")
+                            .foregroundStyle(Color.storybookGold)
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.storybookInk.opacity(0.62))
                     if summary.usedCheckpoint {
                         Label("Recovered from a checkpoint", systemImage: "flag.checkered")
                             .font(.caption.weight(.semibold))

@@ -42,7 +42,7 @@ struct SettingsView: View {
                     dismiss()
                 }
             } message: {
-                Text("Unlocked levels, ratings, scores, and word mastery will be removed. This cannot be undone.")
+                Text("Unlocked levels, ratings, scores, star balance, characters, and word mastery will be removed. This cannot be undone.")
             }
         }
         .frame(minWidth: 420, minHeight: 360)

@@ -6,7 +6,7 @@ A one-touch platformer (Mr Jump–style) that teaches beginner Spanish, for **iO
 - The character auto-runs to the right. **Tap / click / press Space or ↑** to jump; hold longer to jump higher.
 - Collect gold **word-coins** along jump arcs. A banner teaches each Spanish ↔ English pair, and collecting consecutive items builds a score combo.
 - Hunt for three optional **challenge stars** in every run. Best ratings and scores persist locally.
-- Later levels add **spring pads**, patrolling tricksters, and **shield orbs** that absorb one hit.
+- Later levels add **floating and crumbling platforms**, spring pads, updrafts, and three enemy families. Stomp enemies from above or use a **shield orb** to absorb one hit.
 - A midpoint **checkpoint** records the exact collectible and quiz state. After a mistake, restart there or replay the deterministic level from the beginning.
 - At a **translation gate** (`?`), answer a collected, not-yet-quizzed word. Questions adapt between Spanish → English and English → Spanish.
 - Reaching the finish starts a final quiz covering every active word exactly once, followed by a run-results card.
@@ -19,6 +19,7 @@ A one-touch platformer (Mr Jump–style) that teaches beginner Spanish, for **iO
 - **Marathon** — one long run containing all 96 built-in campaign words.
 - **Word Review** — adaptive, platforming-free practice that prioritises weak and due vocabulary.
 - **QueKit Lists** — bundled and personal Spanish ↔ English lists become always-unlocked standalone levels.
+- **Character Atelier** — bank the stars from completed runs, then buy and equip 12 designs ranging from friendly recolours to 900-star prestige characters.
 
 ## Learning and accessibility
 
@@ -52,8 +53,11 @@ The 12 themed campaign levels unlock in order. Their seeded layouts progressivel
 breather sections, single and double hurdles, rhythmic spike runs, translation gates,
 patrolling enemies, shields, checkpoints, and spring-assisted gaps. Platform lengths,
 coin heights, hazard spacing, gaps, and running speed vary so later levels demand
-different jump timing. The seed makes a retry identical and fair, while score combos,
-results, best scores, and persistent three-star ratings reward mastery and replays.
+different jump timing. Later pattern tiers add raised routes, collapsing bridges,
+wind-assisted gaps, ground tricksters, fire hoppers, and sky swoopers; descending onto
+an enemy defeats it and rebounds the player. The seed makes a retry identical and fair,
+while score combos, results, best scores, persistent ratings, and the repeatable star
+bank reward mastery and replays.
 
 Spangle also imports every Spanish ↔ English list from the sibling `QueKit` package—including
 Que’s bundled lists and user-created iCloud lists—as additional, always-unlocked
@@ -69,8 +73,9 @@ Spangle uses a cohesive Spanish storybook art direction across gameplay and UI.
 Every level has a custom-drawn visual identity via a `Skin` rendered by
 `Scenery`: paper-grained skies, softly painted celestial light, layered parallax
 backdrops, flowers, birds, architecture, weather, and theme-specific landscapes.
-Sol, the golden scarf-wearing mascot, world props, hazards, collectibles, gates,
-and particle effects are scalable SpriteKit vectors. Parchment panels,
+Sol and all 12 equippable character designs—including animated dragon, aurora,
+and prismatic prestige variants—are scalable SpriteKit vectors, as are world props,
+hazards, platforms, collectibles, gates, enemies, updrafts, and particle effects. Parchment panels,
 Mediterranean tile motifs, tactile controls, and a matching illustrated app icon
 carry the style through menus, quizzes, onboarding, and results.
 

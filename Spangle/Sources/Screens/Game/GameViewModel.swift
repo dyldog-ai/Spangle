@@ -40,6 +40,7 @@ final class GameViewModel: ObservableObject {
     let scene: GameScene
     let settings: GameSettings
     let learning: LearningProgressStore
+    let characters: CharacterStore
 
     private let unlockKey = "highestUnlockedLevel"
     private let defaults: UserDefaults
@@ -89,6 +90,7 @@ final class GameViewModel: ObservableObject {
         self.defaults = defaults
         settings = GameSettings(defaults: defaults)
         learning = LearningProgressStore(defaults: defaults)
+        characters = CharacterStore(defaults: defaults)
         feedback = GameFeedback(settings: settings)
         themes = Campaign.themes + QueListLibrary.allBundledLists.compactMap { $0.spangleTheme() }
         scene = GameScene(size: CGSize(width: 1024, height: 576))
@@ -102,6 +104,7 @@ final class GameViewModel: ObservableObject {
             skin: .forLevel(0),
             seed: StableSeed.make(Campaign.themes[0].id)
         )
+        scene.setCharacterDesign(characters.selected)
     }
 
     // MARK: - QueKit levels
@@ -271,6 +274,7 @@ final class GameViewModel: ObservableObject {
             skin: .forLevel(difficultyIndex),
             seed: seed
         )
+        scene.setCharacterDesign(characters.selected)
         phase = .intro(eyebrow: eyebrow, theme: theme)
     }
 
@@ -327,6 +331,17 @@ final class GameViewModel: ObservableObject {
         challengeStars = min(challengeStarTotal, challengeStars + 1)
         score += 500
         feedback.star()
+    }
+
+    func defeatedEnemy() {
+        combo = min(8, combo + 1)
+        score += 300 * combo
+        feedback.star()
+    }
+
+    func refreshCharacterDesign() {
+        scene.setCharacterDesign(characters.selected)
+        objectWillChange.send()
     }
 
     func shieldChanged(isActive: Bool) {
@@ -444,6 +459,7 @@ final class GameViewModel: ObservableObject {
         isFinalQuizActive = false
         progress = 1
         score += max(0, 1_000 - quizMistakes * 100)
+        characters.deposit(stars: challengeStars)
         saveBestStarRating()
         saveBestScore()
         if mode.recordsCampaignProgress && levelIndex < Campaign.themes.count {
@@ -502,6 +518,8 @@ final class GameViewModel: ObservableObject {
             defaults.removeObject(forKey: key)
         }
         learning.reset()
+        characters.reset()
+        scene.setCharacterDesign(characters.selected)
         unlockedThrough = 0
         objectWillChange.send()
     }

@@ -12,8 +12,12 @@ enum LevelItem {
     case spring(x: CGFloat)
     /// An optional collectible used to earn a three-star level rating.
     case challengeStar(x: CGFloat, y: CGFloat)
-    /// A later-level obstacle that patrols around its starting position.
-    case enemy(x: CGFloat)
+    /// A moving obstacle with a distinct movement pattern.
+    case enemy(x: CGFloat, kind: EnemyKind)
+    /// A raised surface that can be solid or collapse after landing.
+    case platform(x: CGFloat, y: CGFloat, width: CGFloat, kind: PlatformKind)
+    /// A visible updraft that carries airborne players.
+    case wind(x: CGFloat, width: CGFloat)
     /// Absorbs one hazard hit.
     case shield(x: CGFloat, y: CGFloat)
     /// A safe restart point for the current run.
@@ -39,6 +43,10 @@ struct Level {
         case doubleHurdle
         case rhythmRun
         case enemyRun
+        case skyEnemy
+        case platformHop
+        case crumbleBridge
+        case windLift
         case springGap
         case breather
         case gate
@@ -113,6 +121,10 @@ struct Level {
         if difficulty.supportsDoubleHurdles { patterns.append(.doubleHurdle) }
         if difficulty.supportsRhythmRuns { patterns.append(.rhythmRun) }
         if difficulty.supportsEnemies { patterns.append(.enemyRun) }
+        if difficulty.supportsPlatforms { patterns.append(.platformHop) }
+        if difficulty.supportsFlyingEnemies { patterns.append(.skyEnemy) }
+        if difficulty.supportsCrumblingPlatforms { patterns.append(.crumbleBridge) }
+        if difficulty.supportsWindLifts { patterns.append(.windLift) }
         if difficulty.supportsSpringGaps { patterns.append(.springGap) }
         patterns.append(.breather)
         return patterns
@@ -124,9 +136,9 @@ struct Level {
             return max(difficulty.segmentLength, difficulty.worldSpeed * 0.9)
         case .rhythmRun:
             return max(difficulty.segmentLength * 1.35, 780)
-        case .enemyRun:
+        case .enemyRun, .skyEnemy:
             return max(difficulty.segmentLength, 650)
-        case .springGap:
+        case .platformHop, .crumbleBridge, .windLift, .springGap:
             return max(difficulty.segmentLength, 620)
         case .breather:
             return max(difficulty.segmentLength * 0.82, 500)
@@ -168,9 +180,43 @@ struct Level {
             starPosition = CGPoint(x: position(0.52), y: 190)
 
         case .enemyRun:
-            items.append(.enemy(x: position(0.58)))
-            items.append(.coin(x: position(0.58), y: 150, word: word))
-            starPosition = CGPoint(x: position(0.78), y: 180)
+            items.append(.enemy(x: position(0.48), kind: .trickster))
+            items.append(.enemy(x: position(0.72), kind: .hopper))
+            items.append(.coin(x: position(0.6), y: 155, word: word))
+            starPosition = CGPoint(x: position(0.82), y: 190)
+
+        case .skyEnemy:
+            items.append(.enemy(x: position(0.58), kind: .flyer))
+            items.append(.coin(x: position(0.58), y: 245, word: word))
+            starPosition = CGPoint(x: position(0.8), y: 205)
+
+        case .platformHop:
+            gapAfter = gap * 1.55
+            items.append(.platform(x: segment.endX + gapAfter * 0.32, y: 78,
+                                   width: 125, kind: .solid))
+            items.append(.platform(x: segment.endX + gapAfter * 0.7, y: 125,
+                                   width: 120, kind: .solid))
+            items.append(.coin(x: segment.endX + gapAfter * 0.69, y: 195, word: word))
+            starPosition = CGPoint(x: segment.endX + gapAfter * 0.35, y: 155)
+
+        case .crumbleBridge:
+            gapAfter = gap * 1.5
+            for fraction in [0.22, 0.5, 0.78] as [CGFloat] {
+                items.append(.platform(x: segment.endX + gapAfter * fraction,
+                                       y: 70 + abs(0.5 - fraction) * 90,
+                                       width: 105, kind: .crumbling))
+            }
+            items.append(.coin(x: segment.endX + gapAfter * 0.5, y: 175, word: word))
+            starPosition = CGPoint(x: segment.endX + gapAfter * 0.78, y: 180)
+
+        case .windLift:
+            gapAfter = gap * 1.55
+            items.append(.spring(x: position(0.82)))
+            items.append(.wind(x: segment.endX - 40, width: gapAfter + 120))
+            items.append(.platform(x: segment.endX + gapAfter * 0.6, y: 215,
+                                   width: 145, kind: .solid))
+            items.append(.coin(x: segment.endX + gapAfter * 0.6, y: 285, word: word))
+            starPosition = CGPoint(x: segment.endX + gapAfter * 0.82, y: 315)
 
         case .springGap:
             gapAfter = gap * 1.35

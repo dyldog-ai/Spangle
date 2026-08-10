@@ -110,7 +110,10 @@ struct LevelTests {
             case let .gate(x): return "gate:\(x)"
             case let .spring(x): return "spring:\(x)"
             case let .challengeStar(x, y): return "star:\(x):\(y)"
-            case let .enemy(x): return "enemy:\(x)"
+            case let .enemy(x, kind): return "enemy:\(x):\(String(describing: kind))"
+            case let .platform(x, y, width, kind):
+                return "platform:\(x):\(y):\(width):\(String(describing: kind))"
+            case let .wind(x, width): return "wind:\(x):\(width)"
             case let .shield(x, y): return "shield:\(x):\(y)"
             case let .checkpoint(x): return "checkpoint:\(x)"
             }

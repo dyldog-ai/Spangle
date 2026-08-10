@@ -17,7 +17,8 @@ struct OnboardingOverlay: View {
                     VStack(alignment: .leading, spacing: 11) {
                         instruction("hand.tap.fill", "Tap or press Space. Hold longer to jump higher.")
                         instruction("text.book.closed.fill", "Collect word coins, then translate them at gates.")
-                        instruction("star.fill", "Find three optional stars for a perfect rating.")
+                        instruction("star.fill", "Bank run stars to buy characters in the Atelier.")
+                        instruction("square.3.layers.3d", "Land on platforms, ride updrafts, and stomp enemies.")
                         instruction("shield.fill", "Shields absorb a hit. Checkpoints save your run.")
                     }
                     .frame(maxWidth: 500)

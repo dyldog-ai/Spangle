@@ -9,6 +9,7 @@ struct GameView: View {
     @State private var showsDeveloperNotes = false
     @State private var showsSettings = false
     @State private var showsProgress = false
+    @State private var showsCharacters = false
 
     var body: some View {
         #if os(iOS)
@@ -52,6 +53,12 @@ struct GameView: View {
         }
         .sheet(isPresented: $showsProgress) {
             LearningProgressView(store: model.learning, onReview: model.startReview)
+        }
+        .sheet(isPresented: $showsCharacters, onDismiss: model.refreshCharacterDesign) {
+            CharacterShopView(
+                store: model.characters,
+                onSelectionChanged: model.refreshCharacterDesign
+            )
         }
         .transaction { transaction in
             if model.settings.reducedMotion { transaction.animation = nil }
@@ -157,6 +164,9 @@ struct GameView: View {
                 onDaily: model.startDailyChallenge,
                 onMarathon: model.startMarathon,
                 onReview: model.startReview,
+                starBalance: model.characters.starBalance,
+                selectedCharacter: model.characters.selected,
+                onCharacters: { showsCharacters = true },
                 onProgress: { showsProgress = true },
                 onSettings: { showsSettings = true }
             )

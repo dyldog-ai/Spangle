@@ -12,6 +12,9 @@ struct MenuView: View {
     let onDaily: () -> Void
     let onMarathon: () -> Void
     let onReview: () -> Void
+    let starBalance: Int
+    let selectedCharacter: CharacterDesign
+    let onCharacters: () -> Void
     let onProgress: () -> Void
     let onSettings: () -> Void
 
@@ -69,6 +72,23 @@ struct MenuView: View {
                 Spacer()
             }
             .buttonStyle(StorybookSecondaryButtonStyle())
+
+            HStack {
+                Spacer()
+                Button(action: onCharacters) {
+                    HStack(spacing: 7) {
+                        Label("\(starBalance)", systemImage: "star.fill")
+                            .foregroundStyle(Color.storybookGold)
+                        if horizontalSizeClass != .compact {
+                            Text(selectedCharacter.name)
+                                .lineLimit(1)
+                        }
+                        Image(systemName: "tshirt.fill")
+                    }
+                }
+                .buttonStyle(StorybookSecondaryButtonStyle())
+                .accessibilityLabel("Characters, \(starBalance) stars, \(selectedCharacter.name) equipped")
+            }
 
             VStack(spacing: -3) {
                 Text("SPANGLE")
