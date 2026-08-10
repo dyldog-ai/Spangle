@@ -21,19 +21,21 @@ struct GameOverOverlay: View {
                         .font(.title3.weight(.medium))
                         .multilineTextAlignment(.center)
                         .foregroundStyle(Color.storybookInk.opacity(0.66))
-                    if hasCheckpoint {
-                        Button("Retry checkpoint", action: retryCheckpoint)
-                            .buttonStyle(StorybookPrimaryButtonStyle())
-                            .keyboardShortcut(.defaultAction)
-                        Button("Restart level", action: retryStart)
+                    HStack(spacing: 12) {
+                        if hasCheckpoint {
+                            Button("Retry checkpoint", action: retryCheckpoint)
+                                .buttonStyle(StorybookPrimaryButtonStyle())
+                                .keyboardShortcut(.defaultAction)
+                            Button("Restart level", action: retryStart)
+                                .buttonStyle(StorybookSecondaryButtonStyle())
+                        } else {
+                            Button("Try again", action: retryStart)
+                                .buttonStyle(StorybookPrimaryButtonStyle())
+                                .keyboardShortcut(.defaultAction)
+                        }
+                        Button("Menu", action: onMenu)
                             .buttonStyle(StorybookSecondaryButtonStyle())
-                    } else {
-                        Button("Try again", action: retryStart)
-                            .buttonStyle(StorybookPrimaryButtonStyle())
-                            .keyboardShortcut(.defaultAction)
                     }
-                    Button("Menu", action: onMenu)
-                        .buttonStyle(StorybookSecondaryButtonStyle())
                 }
                 .frame(maxWidth: 480)
             }

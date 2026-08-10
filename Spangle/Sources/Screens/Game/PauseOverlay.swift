@@ -15,13 +15,15 @@ struct PauseOverlay: View {
                         .foregroundStyle(Color.storybookBlue)
                     Text("Paused")
                         .font(.system(size: 39, weight: .black, design: .rounded))
-                    Button("Resume", action: onResume)
-                        .buttonStyle(StorybookPrimaryButtonStyle())
-                        .keyboardShortcut(.defaultAction)
-                    Button("Settings", action: onSettings)
-                        .buttonStyle(StorybookSecondaryButtonStyle())
-                    Button("Return to menu", action: onMenu)
-                        .buttonStyle(StorybookSecondaryButtonStyle())
+                    HStack(spacing: 12) {
+                        Button("Resume", action: onResume)
+                            .buttonStyle(StorybookPrimaryButtonStyle())
+                            .keyboardShortcut(.defaultAction)
+                        Button("Settings", action: onSettings)
+                            .buttonStyle(StorybookSecondaryButtonStyle())
+                        Button("Menu", action: onMenu)
+                            .buttonStyle(StorybookSecondaryButtonStyle())
+                    }
                 }
             }
         }

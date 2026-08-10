@@ -43,12 +43,14 @@ struct ResultsOverlay: View {
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(Color.storybookInk.opacity(0.58))
                     }
-                    Button(nextTheme == nil ? "Back to menu" : "Next level", action: onContinue)
-                        .buttonStyle(StorybookPrimaryButtonStyle())
-                        .keyboardShortcut(.defaultAction)
-                    if nextTheme != nil {
-                        Button("Menu", action: onMenu)
-                            .buttonStyle(StorybookSecondaryButtonStyle())
+                    HStack(spacing: 12) {
+                        Button(nextTheme == nil ? "Back to menu" : "Next level", action: onContinue)
+                            .buttonStyle(StorybookPrimaryButtonStyle())
+                            .keyboardShortcut(.defaultAction)
+                        if nextTheme != nil {
+                            Button("Menu", action: onMenu)
+                                .buttonStyle(StorybookSecondaryButtonStyle())
+                        }
                     }
                 }
             }

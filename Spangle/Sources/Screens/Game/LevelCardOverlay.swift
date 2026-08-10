@@ -32,14 +32,16 @@ struct LevelCardOverlay: View {
                         .font(.title3.weight(.medium))
                         .foregroundStyle(Color.storybookInk.opacity(0.68))
                         .multilineTextAlignment(.center)
-                    Button(button, action: action)
-                        .buttonStyle(StorybookPrimaryButtonStyle())
-                        .padding(.top, 5)
-                        .keyboardShortcut(.defaultAction)
-                    if let secondary {
-                        Button(secondary.label, action: secondary.action)
-                            .buttonStyle(StorybookSecondaryButtonStyle())
+                    HStack(spacing: 12) {
+                        Button(button, action: action)
+                            .buttonStyle(StorybookPrimaryButtonStyle())
+                            .keyboardShortcut(.defaultAction)
+                        if let secondary {
+                            Button(secondary.label, action: secondary.action)
+                                .buttonStyle(StorybookSecondaryButtonStyle())
+                        }
                     }
+                    .padding(.top, 5)
                 }
                 .frame(maxWidth: 520)
             }

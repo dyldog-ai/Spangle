@@ -23,13 +23,15 @@ struct MessageOverlay: View {
                         .font(.title3.weight(.medium))
                         .multilineTextAlignment(.center)
                         .foregroundStyle(Color.storybookInk.opacity(0.68))
-                    Button(button, action: action)
-                        .buttonStyle(StorybookPrimaryButtonStyle())
-                        .padding(.top, 3)
-                    if let secondary {
-                        Button(secondary.label, action: secondary.action)
-                            .buttonStyle(StorybookSecondaryButtonStyle())
+                    HStack(spacing: 12) {
+                        Button(button, action: action)
+                            .buttonStyle(StorybookPrimaryButtonStyle())
+                        if let secondary {
+                            Button(secondary.label, action: secondary.action)
+                                .buttonStyle(StorybookSecondaryButtonStyle())
+                        }
                     }
+                    .padding(.top, 3)
                 }
                 .frame(maxWidth: 520)
             }

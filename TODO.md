@@ -12,7 +12,7 @@
 - [x] Top of quiz flags and final flag are cut off on iPhone
 - [x] Word review should still be a regular game play, not just the quiz bit
 - [x] Mid-level flags should not overlap word coins
-- [ ] Popups are taller than the screen on iOS. Change vertical button layouts to horizontal.
+- [x] Popups are taller than the screen on iOS. Change vertical button layouts to horizontal.
 - [ ] QueKit and QYayKit should not be included in production release builds
 - [ ] Add background music to the levels
 - [ ] Build a level creator so I can create my own levels. Should not be included in production release builds
