@@ -45,6 +45,29 @@ struct LevelTests {
     }
 
     @Test
+    func sameSeedProducesTheSameLevel() {
+        let first = Level.generate(words: words, difficulty: .forLevel(8), seed: 42)
+        let second = Level.generate(words: words, difficulty: .forLevel(8), seed: 42)
+
+        #expect(first.finishX == second.finishX)
+        #expect(first.segments.map { [$0.startX, $0.endX] }
+            == second.segments.map { [$0.startX, $0.endX] })
+        #expect(itemDescriptions(first.items) == itemDescriptions(second.items))
+    }
+
+    @Test
+    func advancedLevelsContainRecoveryAndPowerMechanics() {
+        let level = Level.generate(words: words, difficulty: .forLevel(8), seed: 7)
+        let checkpoints = level.items.count { if case .checkpoint = $0 { true } else { false } }
+        let shields = level.items.count { if case .shield = $0 { true } else { false } }
+        let enemies = level.items.count { if case .enemy = $0 { true } else { false } }
+
+        #expect(checkpoints == 1)
+        #expect(shields == 1)
+        #expect(enemies > 0)
+    }
+
+    @Test
     func mechanicsAndLayoutsBecomeMoreVaried() throws {
         let firstLevel = Level.generate(words: words, difficulty: .forLevel(0))
         let advancedDifficulty = Difficulty.forLevel(6)
@@ -76,6 +99,21 @@ struct LevelTests {
             let segment = advancedLevel.segments[index]
             let nextSegment = advancedLevel.segments[index + 1]
             #expect(nextSegment.startX - segment.endX > advancedDifficulty.gap)
+        }
+    }
+
+    private func itemDescriptions(_ items: [LevelItem]) -> [String] {
+        items.map { item in
+            switch item {
+            case let .spike(x): return "spike:\(x)"
+            case let .coin(x, y, word): return "coin:\(x):\(y):\(word.id)"
+            case let .gate(x): return "gate:\(x)"
+            case let .spring(x): return "spring:\(x)"
+            case let .challengeStar(x, y): return "star:\(x):\(y)"
+            case let .enemy(x): return "enemy:\(x)"
+            case let .shield(x, y): return "shield:\(x):\(y)"
+            case let .checkpoint(x): return "checkpoint:\(x)"
+            }
         }
     }
 }

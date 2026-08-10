@@ -27,7 +27,7 @@ struct QuizWordQueueTests {
             VocabWord(spanish: "tres", english: "three"),
         ]
         var queue = QuizWordQueue(words: words)
-        var quizzedIDs: Set<UUID> = []
+        var quizzedIDs: Set<String> = []
 
         while let word = queue.takeRandom() {
             quizzedIDs.insert(word.id)

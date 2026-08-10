@@ -4,7 +4,11 @@ import SwiftUI
 
 struct GameView: View {
     @StateObject private var model = GameViewModel()
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @Environment(\.scenePhase) private var appScenePhase
     @State private var showsDeveloperNotes = false
+    @State private var showsSettings = false
+    @State private var showsProgress = false
 
     var body: some View {
         #if os(iOS)
@@ -23,14 +27,35 @@ struct GameView: View {
         ZStack {
             SpriteView(scene: model.scene)
                 .ignoresSafeArea()
+                .contrast(model.settings.highContrast ? 1.25 : 1)
+                .accessibilityHidden(true)
 
             if model.phase != .menu {
                 hud
                 toast
             }
             overlay
+            if model.phase == .menu && !hasCompletedOnboarding {
+                OnboardingOverlay { hasCompletedOnboarding = true }
+                    .zIndex(20)
+            }
         }
         .task { model.reloadQueKitLevels() }
+        .onChange(of: appScenePhase) { _, newPhase in
+            if newPhase != .active { model.pauseIfPlaying() }
+        }
+        .sheet(isPresented: $showsSettings) {
+            SettingsView(settings: model.settings) {
+                model.resetAllProgress()
+                hasCompletedOnboarding = false
+            }
+        }
+        .sheet(isPresented: $showsProgress) {
+            LearningProgressView(store: model.learning, onReview: model.startReview)
+        }
+        .transaction { transaction in
+            if model.settings.reducedMotion { transaction.animation = nil }
+        }
         #if os(macOS)
         .frame(minWidth: 720, minHeight: 405)
         #endif
@@ -39,26 +64,41 @@ struct GameView: View {
     private var hud: some View {
         VStack {
             VStack(spacing: 7) {
-                HStack {
+                HStack(spacing: 14) {
+                    Button(action: model.pause) {
+                        Image(systemName: "pause.fill")
+                            .frame(width: 30, height: 30)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.white)
+                    .accessibilityLabel("Pause game")
+
                     Label("\(model.wordsLearned)", systemImage: "text.book.closed.fill")
-                    Label(
-                        "\(model.challengeStars)/\(model.challengeStarTotal)",
-                        systemImage: "star.fill"
-                    )
+                    Label("\(model.challengeStars)/\(model.challengeStarTotal)", systemImage: "star.fill")
+                    if model.shieldActive {
+                        Label("Shield", systemImage: "shield.fill")
+                            .foregroundStyle(.cyan)
+                    }
                     Spacer()
-                    Text(model.currentThemeName)
-                        .font(.headline)
+                    VStack(spacing: 0) {
+                        Text(model.currentThemeName).font(.headline)
+                        Text("\(model.score.formatted()) · ×\(model.combo)")
+                            .font(.caption.bold().monospacedDigit())
+                    }
                     Spacer()
                     Label("\(model.distance) m", systemImage: "figure.run")
                 }
                 ProgressView(value: model.progress)
                     .tint(.yellow)
                     .background(.white.opacity(0.25), in: Capsule())
+                    .accessibilityLabel("Level progress")
+                    .accessibilityValue("\(Int(model.progress * 100)) percent")
             }
             .font(.headline.monospacedDigit())
             .foregroundStyle(.white)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .background(model.settings.highContrast ? .black.opacity(0.82) : .black.opacity(0.18))
             Spacer()
         }
     }
@@ -70,12 +110,14 @@ struct GameView: View {
                 Text("\(word.spanish)  =  \(word.english)")
                     .font(.title3.bold())
                     .foregroundStyle(.white)
-                    .padding(.horizontal, 18).padding(.vertical, 10)
-                    .background(.black.opacity(0.55), in: Capsule())
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 10)
+                    .background(.black.opacity(0.68), in: Capsule())
                     .padding(.bottom, 28)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
-            .animation(.spring, value: model.toast)
+            .animation(model.settings.reducedMotion ? nil : .spring, value: model.toast)
+            .accessibilityElement(children: .combine)
         }
     }
 
@@ -86,10 +128,23 @@ struct GameView: View {
                 themes: model.themes,
                 isLocked: model.isLocked,
                 bestStarRating: model.bestStarRating,
-                onSelect: model.selectLevel
+                dailyBest: model.dailyBestScore,
+                marathonBest: model.marathonBestScore,
+                onSelect: model.selectLevel,
+                onDaily: model.startDailyChallenge,
+                onMarathon: model.startMarathon,
+                onReview: model.startReview,
+                onProgress: { showsProgress = true },
+                onSettings: { showsSettings = true }
             )
         case .playing:
             EmptyView()
+        case .paused:
+            PauseOverlay(
+                onResume: model.resume,
+                onSettings: { showsSettings = true },
+                onMenu: model.goToMenu
+            )
         case let .generating(listName):
             MessageOverlay(
                 title: "Creating level… ✨",
@@ -104,42 +159,47 @@ struct GameView: View {
                 button: "Menu",
                 action: model.goToMenu
             )
-        case let .intro(level, theme):
+        case let .intro(eyebrow, theme):
             LevelCardOverlay(
                 emoji: theme.emoji,
-                eyebrow: "Nivel \(level)",
+                eyebrow: eyebrow,
                 title: theme.name,
                 subtitle: "\(theme.english) · Find all \(model.challengeStarTotal) stars",
                 button: "¡Vamos!",
                 action: model.startLevel,
                 secondary: ("Menu", model.goToMenu)
             )
-        case let .quiz(word, options, heading):
-            QuizOverlay(word: word, options: options, heading: heading, onPick: model.answer)
+        case let .quiz(question):
+            QuizOverlay(question: question, onPick: model.answer)
+        case let .reviewCorrection(question):
+            MessageOverlay(
+                title: "Not quite",
+                message: "\(question.prompt) means “\(question.correctAnswer)”.",
+                button: "Continue review",
+                action: model.continueReviewAfterCorrection
+            )
         case let .gameOver(reason):
-            MessageOverlay(
-                title: "¡Ay!",
-                message: reason,
-                button: "Try again",
-                action: model.retry,
-                secondary: ("Menu", model.goToMenu)
+            GameOverOverlay(
+                reason: reason,
+                hasCheckpoint: model.hasCheckpoint,
+                retryCheckpoint: model.retryFromCheckpoint,
+                retryStart: model.retry,
+                onMenu: model.goToMenu
             )
-        case let .levelComplete(nextTheme):
-            LevelCardOverlay(
-                emoji: model.challengeStars == model.challengeStarTotal ? "🌟" : "🎉",
-                eyebrow: "¡Nivel completado!",
-                title: "\(model.challengeStars)/\(model.challengeStarTotal) stars · \(model.wordsLearned) words",
-                subtitle: "Next: \(nextTheme.emoji) \(nextTheme.name)",
-                button: "Next level",
-                action: model.nextLevel,
-                secondary: ("Menu", model.goToMenu)
+        case let .results(summary, nextTheme):
+            ResultsOverlay(
+                summary: summary,
+                nextTheme: nextTheme,
+                onContinue: model.continueAfterResults,
+                onMenu: model.goToMenu
             )
-        case .campaignComplete:
+        case let .reviewComplete(correct, total):
             MessageOverlay(
-                title: "¡Campeón! 🏆",
-                message: "You finished every level. ¡Felicidades!",
+                title: "Review complete 🧠",
+                message: "\(correct) of \(total) correct. Your next review will adapt to these answers.",
                 button: "Menu",
-                action: model.goToMenu
+                action: model.goToMenu,
+                secondary: ("Review again", model.startReview)
             )
         }
     }

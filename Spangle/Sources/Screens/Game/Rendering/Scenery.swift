@@ -16,7 +16,7 @@ enum Scenery {
     static func build(skin: Skin, finishX: CGFloat, screenWidth: CGFloat) -> Layers {
         let far = SKNode()
         let near = SKNode()
-        var rng = SeededGenerator(seed: UInt64(truncatingIfNeeded: skin.decor.hashValue &+ 97))
+        var rng = SeededGenerator(seed: StableSeed.make(String(describing: skin.decor)))
         let farSpan = finishX * farFactor + screenWidth + 600
         let nearSpan = finishX * nearFactor + screenWidth + 600
 
@@ -336,18 +336,5 @@ enum Scenery {
             arc.fillColor = .clear
             node.addChild(arc)
         }
-    }
-}
-
-/// Deterministic RNG so a level's scenery layout is stable across rebuilds.
-struct SeededGenerator: RandomNumberGenerator {
-    private var state: UInt64
-    init(seed: UInt64) { state = seed &+ 0x9E3779B97F4A7C15 }
-    mutating func next() -> UInt64 {
-        state = state &* 6364136223846793005 &+ 1442695040888963407
-        var z = state
-        z = (z ^ (z >> 30)) &* 0xBF58476D1CE4E5B9
-        z = (z ^ (z >> 27)) &* 0x94D049BB133111EB
-        return z ^ (z >> 31)
     }
 }

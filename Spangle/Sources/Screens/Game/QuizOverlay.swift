@@ -1,34 +1,49 @@
 import SwiftUI
 
-/// Translation gate: pick the English meaning of the collected Spanish word.
+/// Bidirectional translation question used by gates, final quizzes, and review.
 struct QuizOverlay: View {
-    let word: VocabWord
-    let options: [String]
-    let heading: String
+    let question: QuizQuestion
     let onPick: (String) -> Void
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.55).ignoresSafeArea()
-            VStack(spacing: 20) {
-                Text(heading)
+            Color.black.opacity(0.6).ignoresSafeArea()
+            VStack(spacing: 18) {
+                Text(question.heading)
                     .font(.headline)
                     .foregroundStyle(.secondary)
-                Text(word.spanish)
-                    .font(.system(size: 44, weight: .heavy, design: .rounded))
-                ForEach(options, id: \.self) { option in
-                    Button { onPick(option) } label: {
-                        Text(option)
-                            .font(.title3.bold())
-                            .frame(maxWidth: 320)
-                            .padding(.vertical, 14)
+                Text(directionLabel)
+                    .font(.caption.bold())
+                    .foregroundStyle(.secondary)
+                Text(question.prompt)
+                    .font(.system(size: 42, weight: .heavy, design: .rounded))
+                    .multilineTextAlignment(.center)
+                    .minimumScaleFactor(0.65)
+                LazyVGrid(columns: columns, spacing: 12) {
+                    ForEach(question.options, id: \.self) { option in
+                        Button { onPick(option) } label: {
+                            Text(option)
+                                .font(.title3.bold())
+                                .frame(maxWidth: .infinity, minHeight: 48)
+                                .padding(.horizontal, 8)
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
-                    .buttonStyle(.borderedProminent)
                 }
+                .frame(maxWidth: 520)
             }
             .padding(28)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24))
             .padding()
         }
+        .accessibilityElement(children: .contain)
+    }
+
+    private let columns = [GridItem(.adaptive(minimum: 180), spacing: 12)]
+
+    private var directionLabel: String {
+        question.direction == .spanishToEnglish
+            ? "SPANISH → ENGLISH"
+            : "ENGLISH → SPANISH"
     }
 }

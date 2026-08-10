@@ -11,7 +11,9 @@ struct Difficulty: Equatable {
 
     var supportsDoubleHurdles: Bool { patternTier >= 1 }
     var supportsRhythmRuns: Bool { patternTier >= 2 }
+    var supportsEnemies: Bool { patternTier >= 2 }
     var supportsSpringGaps: Bool { patternTier >= 3 }
+    var supportsShields: Bool { patternTier >= 3 }
 
     /// Scales smoothly with the zero-based level index while introducing a new
     /// layout mechanic in each of the first four levels.

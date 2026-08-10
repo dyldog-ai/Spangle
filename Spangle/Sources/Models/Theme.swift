@@ -31,13 +31,28 @@ struct Theme: Identifiable, Equatable {
 
     static func == (lhs: Theme, rhs: Theme) -> Bool { lhs.id == rhs.id }
 
-    /// A multiple-choice quiz using distractors from the same list.
-    func quiz(for word: VocabWord) -> [String] {
-        let wrong = words
+    /// Builds a bidirectional multiple-choice question with unique distractors.
+    func question(
+        for word: VocabWord,
+        direction: QuizQuestion.Direction,
+        heading: String
+    ) -> QuizQuestion {
+        let answer: (VocabWord) -> String = direction == .spanishToEnglish
+            ? { $0.english }
+            : { $0.spanish }
+        let correct = answer(word)
+        let distractors = words
             .filter { $0.id != word.id }
+            .map(answer)
+            .filter { $0 != correct }
+            .uniqued()
             .shuffled()
-            .prefix(2)
-            .map(\.english)
-        return ([word.english] + wrong).shuffled()
+            .prefix(3)
+        return QuizQuestion(
+            word: word,
+            direction: direction,
+            options: ([correct] + distractors).shuffled(),
+            heading: heading
+        )
     }
 }

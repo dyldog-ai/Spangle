@@ -20,6 +20,7 @@ final class GameScene: SKScene {
     private var difficulty: Difficulty = .forLevel(0)
     private var skin: Skin = .forLevel(0)
     private var level = Level.generate(words: Campaign.themes[0].words, difficulty: .forLevel(0))
+    private var levelSeed: UInt64 = 0
     private var scroll: CGFloat = 0
     private var playerY: CGFloat = 0   // height above the ground surface
     private var vy: CGFloat = 0
@@ -28,7 +29,11 @@ final class GameScene: SKScene {
     private var holdTime: TimeInterval = 0
     private var active = false
     private var lastUpdate: TimeInterval = 0
+    private var runTime: TimeInterval = 0
+    private var invulnerabilityRemaining: TimeInterval = 0
+    private var shielded = false
     private var quizWordQueue = QuizWordQueue()
+    private var checkpointSnapshot: CheckpointSnapshot?
 
     // MARK: Nodes
     private let sky = SKSpriteNode()
@@ -41,6 +46,9 @@ final class GameScene: SKScene {
     private var gates: [GateNode] = []
     private var springs: [SpringNode] = []
     private var challengeStars: [ChallengeStarNode] = []
+    private var enemies: [EnemyNode] = []
+    private var shields: [ShieldNode] = []
+    private var checkpoints: [CheckpointNode] = []
     private var spikes: [CGFloat] = []
 
     private final class CoinNode {
@@ -83,6 +91,41 @@ final class GameScene: SKScene {
             self.y = y
             self.node = node
         }
+    }
+
+    private final class EnemyNode {
+        let x: CGFloat
+        let node: SKNode
+        init(x: CGFloat, node: SKNode) { self.x = x; self.node = node }
+    }
+
+    private final class ShieldNode {
+        let x: CGFloat
+        let y: CGFloat
+        let node: SKNode
+        var collected = false
+        init(x: CGFloat, y: CGFloat, node: SKNode) {
+            self.x = x; self.y = y; self.node = node
+        }
+    }
+
+    private final class CheckpointNode {
+        let x: CGFloat
+        let node: SKNode
+        var activated = false
+        init(x: CGFloat, node: SKNode) { self.x = x; self.node = node }
+    }
+
+    private struct CheckpointSnapshot {
+        let scroll: CGFloat
+        let coins: [Bool]
+        let gates: [Bool]
+        let springs: [Bool]
+        let stars: [Bool]
+        let shields: [Bool]
+        let checkpoints: [Bool]
+        let quizQueue: QuizWordQueue
+        let shielded: Bool
     }
 
     private var playerScreenX: CGFloat { size.width * 0.28 }
@@ -148,6 +191,9 @@ final class GameScene: SKScene {
         gates.removeAll()
         springs.removeAll()
         challengeStars.removeAll()
+        enemies.removeAll()
+        shields.removeAll()
+        checkpoints.removeAll()
         spikes.removeAll()
 
         for seg in level.segments {
@@ -175,6 +221,18 @@ final class GameScene: SKScene {
                 let node = makeChallengeStar(at: x)
                 worldNode.addChild(node)
                 challengeStars.append(ChallengeStarNode(x: x, y: y, node: node))
+            case let .enemy(x):
+                let node = makeEnemy(at: x)
+                worldNode.addChild(node)
+                enemies.append(EnemyNode(x: x, node: node))
+            case let .shield(x, y):
+                let node = makeShield(at: x)
+                worldNode.addChild(node)
+                shields.append(ShieldNode(x: x, y: y, node: node))
+            case let .checkpoint(x):
+                let node = makeCheckpoint(at: x)
+                worldNode.addChild(node)
+                checkpoints.append(CheckpointNode(x: x, node: node))
             }
         }
 
@@ -306,6 +364,68 @@ final class GameScene: SKScene {
         return node
     }
 
+    private func makeEnemy(at x: CGFloat) -> SKNode {
+        let node = SKNode()
+        let body = SKShapeNode(ellipseOf: CGSize(width: 54, height: 42))
+        body.fillColor = SKColor(red: 0.55, green: 0.22, blue: 0.68, alpha: 1)
+        body.strokeColor = .white
+        body.lineWidth = 2
+        body.position.y = 24
+        node.addChild(body)
+        for eyeX in [-11.0, 11.0] as [CGFloat] {
+            let eye = SKShapeNode(circleOfRadius: 5)
+            eye.fillColor = .white
+            eye.strokeColor = .clear
+            eye.position = CGPoint(x: eyeX, y: 30)
+            node.addChild(eye)
+        }
+        node.name = "enemy"
+        node.position = CGPoint(x: x, y: 0)
+        return node
+    }
+
+    private func makeShield(at x: CGFloat) -> SKNode {
+        let node = SKNode()
+        let orb = SKShapeNode(circleOfRadius: 25)
+        orb.fillColor = SKColor(red: 0.2, green: 0.8, blue: 1, alpha: 0.65)
+        orb.strokeColor = .white
+        orb.lineWidth = 3
+        let label = SKLabelNode(text: "◆")
+        label.fontName = "AvenirNext-Bold"
+        label.fontSize = 24
+        label.fontColor = .white
+        label.verticalAlignmentMode = .center
+        node.addChild(orb)
+        node.addChild(label)
+        node.run(.repeatForever(.sequence([
+            .scale(to: 1.15, duration: 0.55), .scale(to: 1, duration: 0.55),
+        ])))
+        node.name = "shield"
+        node.position = CGPoint(x: x, y: 0)
+        return node
+    }
+
+    private func makeCheckpoint(at x: CGFloat) -> SKNode {
+        let node = SKNode()
+        let pole = SKSpriteNode(color: .white, size: CGSize(width: 6, height: 150))
+        pole.anchorPoint = CGPoint(x: 0.5, y: 0)
+        node.addChild(pole)
+        let flag = SKLabelNode(text: "⚑")
+        flag.fontSize = 48
+        flag.verticalAlignmentMode = .center
+        flag.position = CGPoint(x: 19, y: 133)
+        node.addChild(flag)
+        let label = SKLabelNode(text: "CHECKPOINT")
+        label.fontName = "AvenirNext-Bold"
+        label.fontSize = 13
+        label.fontColor = .white
+        label.position = CGPoint(x: 0, y: 165)
+        node.addChild(label)
+        node.name = "checkpoint"
+        node.position = CGPoint(x: x, y: 0)
+        return node
+    }
+
     private func makeGate(at x: CGFloat) -> SKNode {
         let node = SKNode()
         let post = SKShapeNode(rectOf: CGSize(width: 12, height: 230), cornerRadius: 6)
@@ -367,6 +487,9 @@ final class GameScene: SKScene {
         for gate in gates { gate.node.position.y = 0 }
         for spring in springs { spring.node.position.y = 0 }
         for star in challengeStars { star.node.position.y = star.y }
+        for enemy in enemies { enemy.node.position.y = 0 }
+        for shield in shields { shield.node.position.y = shield.y }
+        for checkpoint in checkpoints { checkpoint.node.position.y = 0 }
     }
 
     // MARK: Loop
@@ -378,6 +501,8 @@ final class GameScene: SKScene {
         guard dt > 0 else { return }
 
         scroll += worldSpeed * CGFloat(dt)
+        runTime += dt
+        invulnerabilityRemaining = max(0, invulnerabilityRemaining - dt)
 
         // Vertical integration with variable-height jump.
         let g: CGFloat
@@ -411,11 +536,17 @@ final class GameScene: SKScene {
             return
         }
 
+        checkShields(worldX: worldX)
         checkSpikes(worldX: worldX)
+        guard active else { return }
+        checkEnemies(worldX: worldX)
+        guard active else { return }
         checkSprings(worldX: worldX)
         checkCoins(worldX: worldX)
         checkChallengeStars(worldX: worldX)
+        checkCheckpoints(worldX: worldX)
         checkGates(worldX: worldX)
+        guard active else { return }
 
         if worldX >= level.finishX {
             active = false
@@ -436,14 +567,54 @@ final class GameScene: SKScene {
         nearLayer.position = CGPoint(x: -scroll * Scenery.nearFactor, y: groundTopY)
         player.position = CGPoint(x: playerScreenX, y: groundTopY + playerSize / 2 + playerY)
         player.zRotation = onGround ? 0 : max(-0.5, -vy / 4000)
+        for enemy in enemies {
+            enemy.node.position.x = enemy.x + sin(runTime * 3) * 42
+        }
+    }
+
+    private func checkShields(worldX: CGFloat) {
+        for shield in shields where !shield.collected {
+            guard abs(shield.x - worldX) < 38, abs(playerY - shield.y) < 78 else { continue }
+            shield.collected = true
+            shielded = true
+            shield.node.run(.sequence([
+                .group([.scale(to: 2, duration: 0.2), .fadeOut(withDuration: 0.2)]),
+                .removeFromParent(),
+            ]))
+            game?.shieldChanged(isActive: true)
+        }
     }
 
     private func checkSpikes(worldX: CGFloat) {
-        guard playerY < 40 else { return } // above the spike tips
+        guard invulnerabilityRemaining <= 0, playerY < 40 else { return }
         for sx in spikes where abs(sx - worldX) < 24 {
+            if consumeShield() { return }
             die(reason: "Ouch — spikes!")
             return
         }
+    }
+
+    private func checkEnemies(worldX: CGFloat) {
+        guard invulnerabilityRemaining <= 0, playerY < 46 else { return }
+        for enemy in enemies where abs(enemy.node.position.x - worldX) < 30 {
+            if consumeShield() { return }
+            die(reason: "A trickster caught you!")
+            return
+        }
+    }
+
+    private func consumeShield() -> Bool {
+        guard shielded else { return false }
+        shielded = false
+        invulnerabilityRemaining = 1.2
+        game?.shieldChanged(isActive: false)
+        player.run(.sequence([
+            .fadeAlpha(to: 0.25, duration: 0.08),
+            .fadeAlpha(to: 1, duration: 0.08),
+            .fadeAlpha(to: 0.25, duration: 0.08),
+            .fadeAlpha(to: 1, duration: 0.08),
+        ]))
+        return true
     }
 
     private func checkSprings(worldX: CGFloat) {
@@ -493,6 +664,28 @@ final class GameScene: SKScene {
         }
     }
 
+    private func checkCheckpoints(worldX: CGFloat) {
+        for checkpoint in checkpoints where !checkpoint.activated && worldX >= checkpoint.x {
+            checkpoint.activated = true
+            checkpoint.node.alpha = 0.45
+            checkpoint.node.run(.sequence([
+                .scale(to: 1.3, duration: 0.15), .scale(to: 1, duration: 0.15),
+            ]))
+            checkpointSnapshot = CheckpointSnapshot(
+                scroll: scroll,
+                coins: coins.map(\.collected),
+                gates: gates.map(\.passed),
+                springs: springs.map(\.activated),
+                stars: challengeStars.map(\.collected),
+                shields: shields.map(\.collected),
+                checkpoints: checkpoints.map(\.activated),
+                quizQueue: quizWordQueue,
+                shielded: shielded
+            )
+            game?.reachedCheckpoint()
+        }
+    }
+
     private func checkGates(worldX: CGFloat) {
         for gate in gates where !gate.passed {
             if worldX >= gate.x {
@@ -521,10 +714,11 @@ final class GameScene: SKScene {
     // MARK: External control
 
     /// Configure the scene for a level and reset it, ready to `begin()`.
-    func load(words: [VocabWord], difficulty: Difficulty, skin: Skin) {
+    func load(words: [VocabWord], difficulty: Difficulty, skin: Skin, seed: UInt64 = 0) {
         self.words = words
         self.difficulty = difficulty
         self.skin = skin
+        levelSeed = seed
         rebuild()
     }
 
@@ -534,13 +728,24 @@ final class GameScene: SKScene {
     }
 
     func resumeFromGate() {
+        lastUpdate = 0
+        active = true
+    }
+
+    func pauseRun() {
+        active = false
+        holding = false
+    }
+
+    func resumeRun() {
+        lastUpdate = 0
         active = true
     }
 
     /// Rebuild the current level geometry and reset all player state, leaving
     /// the scene paused until `begin()` is called.
     private func rebuild() {
-        level = Level.generate(words: words, difficulty: difficulty)
+        level = Level.generate(words: words, difficulty: difficulty, seed: levelSeed)
         scroll = 0
         playerY = 0
         vy = 0
@@ -548,6 +753,10 @@ final class GameScene: SKScene {
         holding = false
         holdTime = 0
         quizWordQueue.removeAll()
+        checkpointSnapshot = nil
+        shielded = false
+        invulnerabilityRemaining = 0
+        runTime = 0
         lastUpdate = 0
         active = false
         player.setAlive()
@@ -561,6 +770,51 @@ final class GameScene: SKScene {
         rebuild()
     }
 
+    /// Restores the exact collectible and quiz state captured at the latest checkpoint.
+    @discardableResult
+    func restartFromCheckpoint() -> Bool {
+        guard let snapshot = checkpointSnapshot else { return false }
+        buildBackground()
+        buildWorld()
+        scroll = snapshot.scroll
+        playerY = 0
+        vy = 0
+        onGround = true
+        holding = false
+        holdTime = 0
+        invulnerabilityRemaining = 0
+        quizWordQueue = snapshot.quizQueue
+        shielded = snapshot.shielded
+        restore(snapshot.coins, to: coins, keyPath: \.collected)
+        restore(snapshot.gates, to: gates, keyPath: \.passed)
+        restore(snapshot.springs, to: springs, keyPath: \.activated)
+        restore(snapshot.stars, to: challengeStars, keyPath: \.collected)
+        restore(snapshot.shields, to: shields, keyPath: \.collected)
+        restore(snapshot.checkpoints, to: checkpoints, keyPath: \.activated)
+        for coin in coins where coin.collected { coin.node.removeFromParent() }
+        for gate in gates where gate.passed { gate.node.alpha = 0.45 }
+        for star in challengeStars where star.collected { star.node.removeFromParent() }
+        for shield in shields where shield.collected { shield.node.removeFromParent() }
+        for checkpoint in checkpoints where checkpoint.activated { checkpoint.node.alpha = 0.45 }
+        player.setAlive()
+        layoutWorldHeights()
+        render()
+        lastUpdate = 0
+        active = true
+        game?.shieldChanged(isActive: shielded)
+        return true
+    }
+
+    private func restore<Object: AnyObject>(
+        _ values: [Bool],
+        to objects: [Object],
+        keyPath: ReferenceWritableKeyPath<Object, Bool>
+    ) {
+        for (index, value) in values.enumerated() where objects.indices.contains(index) {
+            objects[index][keyPath: keyPath] = value
+        }
+    }
+
     // MARK: Input
 
     func jumpBegan() {
@@ -570,6 +824,7 @@ final class GameScene: SKScene {
         holding = true
         holdTime = 0
         player.squashJump()
+        game?.jumped()
     }
 
     func jumpEnded() {

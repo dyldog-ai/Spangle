@@ -12,6 +12,12 @@ enum LevelItem {
     case spring(x: CGFloat)
     /// An optional collectible used to earn a three-star level rating.
     case challengeStar(x: CGFloat, y: CGFloat)
+    /// A later-level obstacle that patrols around its starting position.
+    case enemy(x: CGFloat)
+    /// Absorbs one hazard hit.
+    case shield(x: CGFloat, y: CGFloat)
+    /// A safe restart point for the current run.
+    case checkpoint(x: CGFloat)
 }
 
 /// A stretch of solid ground the player can stand on (world coordinates).
@@ -32,12 +38,17 @@ struct Level {
         case hurdle
         case doubleHurdle
         case rhythmRun
+        case enemyRun
         case springGap
         case breather
         case gate
     }
 
-    static func generate(words: [VocabWord], difficulty: Difficulty) -> Level {
+    static func generate(
+        words: [VocabWord],
+        difficulty: Difficulty,
+        seed: UInt64 = 0
+    ) -> Level {
         guard !words.isEmpty else {
             return Level(
                 segments: [GroundSegment(startX: -400, endX: 1_400)],
@@ -50,10 +61,12 @@ struct Level {
         var items: [LevelItem] = []
         var x: CGFloat = 900
 
-        let pool = words.shuffled()
+        var generator = SeededGenerator(seed: seed)
+        let pool = words.shuffled(using: &generator)
         let chunkCount = max(8, pool.count)
         let starChunks = challengeStarChunks(in: chunkCount)
-        let patterns = availablePatterns(for: difficulty)
+        let checkpointChunk = chunkCount / 2
+        let patterns = availablePatterns(for: difficulty).shuffled(using: &generator)
         var patternIndex = 0
 
         for i in 0..<chunkCount {
@@ -76,6 +89,12 @@ struct Level {
                 includesStar: starChunks.contains(i),
                 items: &items
             )
+            if i == checkpointChunk {
+                items.append(.checkpoint(x: segment.startX + segmentLength * 0.1))
+            }
+            if difficulty.supportsShields && i == 1 {
+                items.append(.shield(x: segment.startX + segmentLength * 0.22, y: 92))
+            }
             x = segment.endX + gapAfter
         }
 
@@ -93,6 +112,7 @@ struct Level {
         var patterns: [Pattern] = [.hurdle]
         if difficulty.supportsDoubleHurdles { patterns.append(.doubleHurdle) }
         if difficulty.supportsRhythmRuns { patterns.append(.rhythmRun) }
+        if difficulty.supportsEnemies { patterns.append(.enemyRun) }
         if difficulty.supportsSpringGaps { patterns.append(.springGap) }
         patterns.append(.breather)
         return patterns
@@ -104,6 +124,8 @@ struct Level {
             return max(difficulty.segmentLength, difficulty.worldSpeed * 0.9)
         case .rhythmRun:
             return max(difficulty.segmentLength * 1.35, 780)
+        case .enemyRun:
+            return max(difficulty.segmentLength, 650)
         case .springGap:
             return max(difficulty.segmentLength, 620)
         case .breather:
@@ -144,6 +166,11 @@ struct Level {
             items.append(.spike(x: position(0.72)))
             items.append(.coin(x: position(0.72), y: 138, word: word))
             starPosition = CGPoint(x: position(0.52), y: 190)
+
+        case .enemyRun:
+            items.append(.enemy(x: position(0.58)))
+            items.append(.coin(x: position(0.58), y: 150, word: word))
+            starPosition = CGPoint(x: position(0.78), y: 180)
 
         case .springGap:
             gapAfter = gap * 1.35
