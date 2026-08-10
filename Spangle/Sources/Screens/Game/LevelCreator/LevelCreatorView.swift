@@ -679,14 +679,7 @@ struct LevelCreatorView: View {
     }
 
     private func add(_ kind: EditableLevelObject.Kind) {
-        let furthest = draft.objects.map(\.x).max() ?? 500
-        let x = min(draft.finishX - 120, max(600, furthest + 220))
-        var object = EditableLevelObject.make(kind: kind, x: x)
-        if kind == .coin, draft.usesGeneratedVocabulary {
-            object.spanish = ""
-            object.english = ""
-        }
-        draft.objects.append(object)
+        let object = draft.addObject(kind: kind, after: selectedIDs)
         selectedIDs = [object.id]
         selectedID = object.id
     }

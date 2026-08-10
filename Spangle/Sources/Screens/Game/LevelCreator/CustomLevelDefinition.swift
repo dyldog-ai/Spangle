@@ -89,6 +89,33 @@ struct CustomLevelDefinition: Identifiable, Codable, Equatable {
         }
     }
 
+    mutating func addObject(
+        kind: EditableLevelObject.Kind,
+        after selectedIDs: Set<UUID>,
+        spacing: Double = 220
+    ) -> EditableLevelObject {
+        let selectedObjects = objects.filter { selectedIDs.contains($0.id) }
+        let hasSelection = !selectedObjects.isEmpty
+        let anchorX = (hasSelection ? selectedObjects : objects).map(\.x).max() ?? 500
+        let x = max(600, anchorX + spacing)
+        if hasSelection {
+            for index in objects.indices
+            where !selectedIDs.contains(objects[index].id) && objects[index].x >= x {
+                objects[index].x += spacing
+            }
+        }
+        let furthestX = max(x, objects.map(\.x).max() ?? x)
+        if furthestX >= finishX - 100 { finishX = furthestX + 500 }
+
+        var object = EditableLevelObject.make(kind: kind, x: x)
+        if kind == .coin, usesGeneratedVocabulary {
+            object.spanish = ""
+            object.english = ""
+        }
+        objects.append(object)
+        return object
+    }
+
     mutating func applyGeneratedVocabulary(_ generatedWords: [VocabWord]) {
         replaceVocabulary(with: generatedWords, preservingGenerationConfiguration: true)
     }

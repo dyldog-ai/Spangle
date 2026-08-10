@@ -54,6 +54,24 @@ struct LevelCreatorTests {
     }
 
     @Test
+    func newObjectsFollowTheSelectionOrTheTimelineEnd() {
+        var definition = CustomLevelDefinition.empty
+        let first = definition.addObject(kind: .spike, after: [])
+        let second = definition.addObject(kind: .spring, after: [])
+        let inserted = definition.addObject(kind: .star, after: [first.id])
+
+        #expect(first.x == 720)
+        #expect(second.x == 940)
+        #expect(inserted.x == 940)
+        #expect(definition.objects.first(where: { $0.id == second.id })?.x == 1_160)
+
+        definition.finishX = 1_100
+        let extending = definition.addObject(kind: .checkpoint, after: [second.id])
+        #expect(extending.x == 1_380)
+        #expect(definition.finishX == 1_880)
+    }
+
+    @Test
     func emptyDefinitionHasNoObjects() {
         let definition = CustomLevelDefinition.empty
         #expect(definition.objects.isEmpty)

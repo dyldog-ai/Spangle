@@ -1,23 +1,6 @@
 # TODO
 
-- [x] Should be able to set words in level creator (either a manually written list or an AI generated list)
-- [x] Created levels should show in the level list
-- [x] Level elements in editor should move as they're dragged, not just when they're dropped
-- [x] Level editor doesn't fit on iPhone
-- [x] When playing the level from the editor, exiting the level should take me back to the editor
-- [x] I should be able to delete saved levels
-- [x] Rather than going straight into the level editor when tapping the button, go into a list where I can select and edit a previously made level or create a new one, delete them, etc.
-- [x] New levels should be empty
-- [x] Level creator on iOS
-    - [x] Remove navigation bar -- takes up to much vertical space
-    - [x] Scrollview should go all the way to the bottom
-- [x] Allow created level vocabulary to be generated from a prompt instead of providing a manual word list (both should be options)
-- [x] Combine two top bars in level editor detail screen. Use picker to swap sections. Save and play buttons and status label always be visible
-- [x] Level emoji should be selectable from a picker
-- [x] Generating the word list from a prompt shouldn't just put words in the manual list. The words should be generated dynamically, like the other levels with generated word lists
-- [x] Number of words generated should be defined by how many coins are in the level
-- [x] Allow selecting multiple elements at once (by clicking and dragging to create a rectangle) so they can be moved or deleted together
-- [x] Created levels should be stored in iCloud and available across devices
-- [x] Move the "Tools" so they're in a vertical list on the right of the timeline view
-- [x] Remove the "New" button from the level editor detail screen
-- [x] Level elements should actually show how big they are in the editor
+- [x] When adding elements to the level editor, they should be added after the selected element, and only at the end if there is not selected element
+- [ ] Tapping play in the level editor should show the level on top of the current view, not dismiss everything.
+- [ ] Tools should always be shown. Tools/level picker can be removed. Add a button that hides/shows the tools to the top bar.
+- [ ] Remove the "X words, Y Objects" from the tools sidebar
