@@ -125,11 +125,11 @@ struct GameView: View {
         #if DEVELOPER_FEATURES
             #if os(iOS)
             .fullScreenCover(item: $presentedCustomLevel) { level in
-                GameView(previewLevel: level) { presentedCustomLevel = nil }
+                CustomLevelGameView(level: level)
             }
             #else
             .sheet(item: $presentedCustomLevel) { level in
-                GameView(previewLevel: level) { presentedCustomLevel = nil }
+                CustomLevelGameView(level: level)
                     .frame(minWidth: 900, minHeight: 560)
             }
             #endif
@@ -275,16 +275,18 @@ struct GameView: View {
     }
 
     private func leaveLevel() {
-        model.goToMenu()
         #if DEVELOPER_FEATURES
-        if let onPreviewExit { onPreviewExit() }
+        if let onPreviewExit {
+            onPreviewExit()
+            return
+        }
         #endif
+        model.goToMenu()
     }
 
     private func continueAfterResults() {
         #if DEVELOPER_FEATURES
         if let onPreviewExit {
-            model.continueAfterResults()
             onPreviewExit()
             return
         }

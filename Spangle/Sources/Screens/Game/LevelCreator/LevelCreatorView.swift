@@ -91,12 +91,12 @@ struct LevelCreatorView: View {
         }
         #if os(macOS)
         .sheet(item: $previewLevel) { level in
-            GameView(previewLevel: level) { previewLevel = nil }
+            CustomLevelGameView(level: level)
                 .frame(minWidth: 900, minHeight: 560)
         }
         #else
         .fullScreenCover(item: $previewLevel) { level in
-            GameView(previewLevel: level) { previewLevel = nil }
+            CustomLevelGameView(level: level)
         }
         #endif
         .confirmationDialog(

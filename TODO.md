@@ -12,4 +12,4 @@
     - [x] Add duplicate tool
     - [x] Tapping background should clear selection
     - [x] On Mac, should be able to just drag to select multiple, no need for tool button
-    - [ ] I still see the other views when I'm dismissing the game view from the level editor screen. Split the game view out into its own view so this doesn't happen
+    - [x] I still see the other views when I'm dismissing the game view from the level editor screen. Split the game view out into its own view so this doesn't happen

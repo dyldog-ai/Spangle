@@ -50,13 +50,13 @@ struct LevelCreatorLibraryView: View {
         .frame(minWidth: 700, minHeight: 520)
         .sheet(isPresented: $showsEditor) { editor }
         .sheet(item: $previewLevel) { level in
-            GameView(previewLevel: level) { previewLevel = nil }
+            CustomLevelGameView(level: level)
                 .frame(minWidth: 900, minHeight: 560)
         }
         #else
         .fullScreenCover(isPresented: $showsEditor) { editor }
         .fullScreenCover(item: $previewLevel) { level in
-            GameView(previewLevel: level) { previewLevel = nil }
+            CustomLevelGameView(level: level)
         }
         #endif
         .confirmationDialog(
