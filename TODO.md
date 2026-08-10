@@ -4,7 +4,7 @@
 - [x] Created levels should show in the level list
 - [x] Level elements in editor should move as they're dragged, not just when they're dropped
 - [x] Level editor doesn't fit on iPhone
-- [ ] When playing the level from the editor, exiting the level should take me back to the editor
+- [x] When playing the level from the editor, exiting the level should take me back to the editor
 - [ ] I should be able to delete saved levels
 - [ ] Rather than going straight into the level editor when tapping the button, go into a list where I can select and edit a previously made level or create a new one, delete them, etc.
 - [ ] New levels should be empty

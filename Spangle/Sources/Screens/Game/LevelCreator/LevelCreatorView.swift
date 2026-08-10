@@ -9,6 +9,7 @@ private struct LevelObjectPosition {
 struct LevelCreatorView: View {
     @ObservedObject var store: LevelCreatorStore
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    let initialLevelID: UUID?
     let onPlay: (CustomLevelDefinition) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var draft = CustomLevelDefinition.starter
@@ -18,6 +19,7 @@ struct LevelCreatorView: View {
     @State private var vocabularyDraft = ""
     @State private var vocabularyError: String?
     @State private var dragOrigins: [UUID: LevelObjectPosition] = [:]
+    @State private var loadedInitialLevel = false
 
     private let horizontalScale: CGFloat = 0.16
     private var isCompactEditor: Bool { verticalSizeClass == .compact }
@@ -51,6 +53,7 @@ struct LevelCreatorView: View {
         .sheet(isPresented: $showsVocabularyEditor) {
             vocabularyEditor
         }
+        .onAppear(perform: loadInitialLevelIfNeeded)
     }
 
     private var creatorActionBar: some View {
@@ -363,6 +366,16 @@ struct LevelCreatorView: View {
                 dismiss()
             }
         }
+    }
+
+    private func loadInitialLevelIfNeeded() {
+        guard !loadedInitialLevel else { return }
+        loadedInitialLevel = true
+        guard let initialLevelID,
+              let level = store.levels.first(where: { $0.id == initialLevelID }) else { return }
+        draft = level
+        savedDefinition = level
+        selectedID = nil
     }
 
     private func saveDraft() {

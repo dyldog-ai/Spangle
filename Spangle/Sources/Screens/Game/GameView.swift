@@ -18,6 +18,8 @@ struct GameView: View {
     @State private var jumpPressActive = false
     #if DEVELOPER_FEATURES
     @State private var showsLevelCreator = false
+    @State private var returnsToLevelCreator = false
+    @State private var editingCustomLevelID: UUID?
     #endif
 
     var body: some View {
@@ -85,11 +87,19 @@ struct GameView: View {
         #if DEVELOPER_FEATURES
             #if os(iOS)
             .fullScreenCover(isPresented: $showsLevelCreator) {
-                LevelCreatorView(store: levelCreatorStore, onPlay: model.playCustomLevel)
+                LevelCreatorView(
+                    store: levelCreatorStore,
+                    initialLevelID: editingCustomLevelID,
+                    onPlay: playFromLevelCreator
+                )
             }
             #else
             .sheet(isPresented: $showsLevelCreator) {
-                LevelCreatorView(store: levelCreatorStore, onPlay: model.playCustomLevel)
+                LevelCreatorView(
+                    store: levelCreatorStore,
+                    initialLevelID: editingCustomLevelID,
+                    onPlay: playFromLevelCreator
+                )
             }
             #endif
         #endif
@@ -221,12 +231,47 @@ struct GameView: View {
     private func playCustomLevel(id: UUID) {
         #if DEVELOPER_FEATURES
         guard let level = levelCreatorStore.levels.first(where: { $0.id == id }) else { return }
+        returnsToLevelCreator = false
+        editingCustomLevelID = nil
         model.playCustomLevel(level)
+        #endif
+    }
+
+    #if DEVELOPER_FEATURES
+    private func playFromLevelCreator(_ level: CustomLevelDefinition) {
+        returnsToLevelCreator = true
+        editingCustomLevelID = level.id
+        model.playCustomLevel(level)
+    }
+    #endif
+
+    private func leaveLevel() {
+        model.goToMenu()
+        #if DEVELOPER_FEATURES
+        guard returnsToLevelCreator else { return }
+        returnsToLevelCreator = false
+        Task { @MainActor in showsLevelCreator = true }
+        #endif
+    }
+
+    private func continueAfterResults() {
+        #if DEVELOPER_FEATURES
+        let shouldReturnToCreator = returnsToLevelCreator
+        #else
+        let shouldReturnToCreator = false
+        #endif
+        model.continueAfterResults()
+        #if DEVELOPER_FEATURES
+        if shouldReturnToCreator {
+            returnsToLevelCreator = false
+            Task { @MainActor in showsLevelCreator = true }
+        }
         #endif
     }
 
     private func openLevelCreator() {
         #if DEVELOPER_FEATURES
+        editingCustomLevelID = nil
         showsLevelCreator = true
         #endif
     }
@@ -259,7 +304,7 @@ struct GameView: View {
             PauseOverlay(
                 onResume: model.resume,
                 onSettings: { showsSettings = true },
-                onMenu: model.goToMenu
+                onMenu: leaveLevel
             )
         case let .generating(listName):
             MessageOverlay(
@@ -283,7 +328,7 @@ struct GameView: View {
                 subtitle: "\(theme.english) · Find all \(model.challengeStarTotal) stars",
                 button: "¡Vamos!",
                 action: model.startLevel,
-                secondary: ("Menu", model.goToMenu)
+                secondary: ("Menu", leaveLevel)
             )
         case let .quiz(question):
             QuizOverlay(question: question, onPick: model.answer)
@@ -300,14 +345,14 @@ struct GameView: View {
                 hasCheckpoint: model.hasCheckpoint,
                 retryCheckpoint: model.retryFromCheckpoint,
                 retryStart: model.retry,
-                onMenu: model.goToMenu
+                onMenu: leaveLevel
             )
         case let .results(summary, nextTheme):
             ResultsOverlay(
                 summary: summary,
                 nextTheme: nextTheme,
-                onContinue: model.continueAfterResults,
-                onMenu: model.goToMenu
+                onContinue: continueAfterResults,
+                onMenu: leaveLevel
             )
         }
     }
