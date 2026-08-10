@@ -33,7 +33,7 @@ struct Skin {
         SKColor(red: r / 255, green: g / 255, blue: b / 255, alpha: 1)
     }
 
-    // Ordered to match Campaign.themes.
+    // Ordered to match the levels across Campaign.packs.
     private static let skins: [Skin] = [
         // 1 · Los Colores — playful pastel rainbow
         Skin(skyTop: c(255, 214, 236), skyBottom: c(214, 224, 255), grass: c(120, 214, 120),
@@ -83,6 +83,31 @@ struct Skin {
         Skin(skyTop: c(24, 30, 70), skyBottom: c(80, 70, 140), grass: c(60, 120, 80),
              soil: c(60, 54, 72), accent: c(120, 220, 255), celestial: c(238, 240, 255),
              decor: .mountains),
+        // Mentes Maestras uses deeper, more mature jewel-tone palettes.
+        Skin(skyTop: c(42, 28, 68), skyBottom: c(136, 70, 96), grass: c(95, 122, 92),
+             soil: c(62, 48, 58), accent: c(244, 190, 72), celestial: c(255, 224, 164),
+             decor: .city),
+        Skin(skyTop: c(28, 46, 74), skyBottom: c(112, 132, 154), grass: c(70, 116, 104),
+             soil: c(52, 62, 72), accent: c(228, 132, 72), celestial: c(224, 232, 236),
+             decor: .town),
+        Skin(skyTop: c(52, 34, 74), skyBottom: c(128, 88, 132), grass: c(74, 126, 92),
+             soil: c(62, 48, 62), accent: c(222, 176, 78), celestial: c(238, 224, 190),
+             decor: .city),
+        Skin(skyTop: c(16, 54, 78), skyBottom: c(58, 144, 146), grass: c(54, 130, 108),
+             soil: c(40, 70, 74), accent: c(100, 232, 224), celestial: c(210, 246, 244),
+             decor: .clouds),
+        Skin(skyTop: c(36, 58, 68), skyBottom: c(116, 132, 110), grass: c(90, 136, 82),
+             soil: c(68, 66, 52), accent: c(230, 192, 76), celestial: c(238, 228, 178),
+             decor: .hills),
+        Skin(skyTop: c(46, 24, 62), skyBottom: c(138, 64, 96), grass: c(78, 116, 82),
+             soil: c(58, 42, 58), accent: c(236, 142, 192), celestial: c(244, 222, 230),
+             decor: .forest),
+        Skin(skyTop: c(18, 24, 52), skyBottom: c(68, 70, 116), grass: c(56, 94, 76),
+             soil: c(44, 42, 62), accent: c(154, 180, 255), celestial: c(232, 234, 255),
+             decor: .mountains),
+        Skin(skyTop: c(54, 24, 50), skyBottom: c(170, 78, 78), grass: c(78, 116, 76),
+             soil: c(62, 44, 48), accent: c(255, 186, 86), celestial: c(255, 218, 164),
+             decor: .rainbowHills),
     ]
 }
 

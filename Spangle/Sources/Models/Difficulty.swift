@@ -18,16 +18,20 @@ struct Difficulty: Equatable {
     var supportsCrumblingPlatforms: Bool { patternTier >= 4 }
     var supportsWindLifts: Bool { patternTier >= 5 }
     var supportsShields: Bool { patternTier >= 3 }
+    var supportsShieldGauntlets: Bool { patternTier >= 12 }
+    var supportsStompChains: Bool { patternTier >= 13 }
+    var supportsPrecisionBridges: Bool { patternTier >= 15 }
+    var supportsWindMazes: Bool { patternTier >= 17 }
 
     /// Scales smoothly with the zero-based level index while introducing a new
     /// layout mechanic in each of the first four levels.
     static func forLevel(_ i: Int) -> Difficulty {
         let f = CGFloat(i)
         return Difficulty(
-            worldSpeed: min(640, 380 + f * 24),
-            gap: min(340, 195 + f * 13),
-            segmentLength: max(470, 780 - f * 28),
-            patternTier: min(5, max(0, i))
+            worldSpeed: min(700, 380 + f * 24),
+            gap: min(370, 195 + f * 13),
+            segmentLength: max(430, 780 - f * 28),
+            patternTier: max(0, i)
         )
     }
 }

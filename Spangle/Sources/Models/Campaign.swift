@@ -1,8 +1,6 @@
-/// The ordered set of levels. Themes progress from easy, short, cognate-heavy
-/// words (colours, numbers) to longer and more abstract vocabulary (emotions,
-/// verbs); `Difficulty.forLevel` ramps the platforming challenge in parallel.
+/// Built-in campaign packs ordered from foundational lessons to expert play.
 enum Campaign {
-    static let themes: [Theme] = [
+    private static let foundationThemes: [Theme] = [
         Theme(name: "Los Colores", english: "Colours", emoji: "🎨", words: [
             .init(spanish: "rojo", english: "red"),
             .init(spanish: "azul", english: "blue"),
@@ -124,4 +122,109 @@ enum Campaign {
             .init(spanish: "trabajar", english: "to work"),
         ]),
     ]
+
+    private static let masterMindThemes: [Theme] = [
+        Theme(name: "La Argumentación", english: "Reasoned debate", emoji: "⚖️", words: [
+            .init(spanish: "sin embargo", english: "however"),
+            .init(spanish: "por lo tanto", english: "therefore"),
+            .init(spanish: "aunque", english: "although"),
+            .init(spanish: "sostener", english: "to maintain"),
+            .init(spanish: "refutar", english: "to refute"),
+            .init(spanish: "evidencia", english: "evidence"),
+            .init(spanish: "premisa", english: "premise"),
+            .init(spanish: "conclusión", english: "conclusion"),
+        ]),
+        Theme(name: "El Mundo Laboral", english: "Professional life", emoji: "💼", words: [
+            .init(spanish: "plazo", english: "deadline"),
+            .init(spanish: "presupuesto", english: "budget"),
+            .init(spanish: "reunión", english: "meeting"),
+            .init(spanish: "desempeño", english: "performance"),
+            .init(spanish: "ascenso", english: "promotion"),
+            .init(spanish: "plantilla", english: "workforce"),
+            .init(spanish: "negociar", english: "to negotiate"),
+            .init(spanish: "renunciar", english: "to resign"),
+        ]),
+        Theme(name: "La Sociedad", english: "Society and citizenship", emoji: "🏛️", words: [
+            .init(spanish: "ciudadanía", english: "citizenship"),
+            .init(spanish: "desigualdad", english: "inequality"),
+            .init(spanish: "derechos", english: "rights"),
+            .init(spanish: "deberes", english: "duties"),
+            .init(spanish: "comunidad", english: "community"),
+            .init(spanish: "justicia", english: "justice"),
+            .init(spanish: "política", english: "politics"),
+            .init(spanish: "bienestar", english: "well-being"),
+        ]),
+        Theme(name: "Ciencia y Tecnología", english: "Science and technology", emoji: "🔬", words: [
+            .init(spanish: "hallazgo", english: "finding"),
+            .init(spanish: "hipótesis", english: "hypothesis"),
+            .init(spanish: "datos", english: "data"),
+            .init(spanish: "sesgo", english: "bias"),
+            .init(spanish: "algoritmo", english: "algorithm"),
+            .init(spanish: "privacidad", english: "privacy"),
+            .init(spanish: "avance", english: "breakthrough"),
+            .init(spanish: "investigar", english: "to research"),
+        ]),
+        Theme(name: "Las Finanzas", english: "Personal finance", emoji: "📈", words: [
+            .init(spanish: "ahorro", english: "savings"),
+            .init(spanish: "deuda", english: "debt"),
+            .init(spanish: "interés", english: "interest"),
+            .init(spanish: "ingresos", english: "income"),
+            .init(spanish: "gastos", english: "expenses"),
+            .init(spanish: "inversión", english: "investment"),
+            .init(spanish: "préstamo", english: "loan"),
+            .init(spanish: "riesgo", english: "risk"),
+        ]),
+        Theme(name: "La Literatura", english: "Literary analysis", emoji: "📖", words: [
+            .init(spanish: "trama", english: "plot"),
+            .init(spanish: "narrador", english: "narrator"),
+            .init(spanish: "metáfora", english: "metaphor"),
+            .init(spanish: "desenlace", english: "resolution"),
+            .init(spanish: "personaje", english: "character"),
+            .init(spanish: "ensayo", english: "essay"),
+            .init(spanish: "verso", english: "verse"),
+            .init(spanish: "borrador", english: "draft"),
+        ]),
+        Theme(name: "La Filosofía", english: "Philosophy", emoji: "🧠", words: [
+            .init(spanish: "conciencia", english: "consciousness"),
+            .init(spanish: "verdad", english: "truth"),
+            .init(spanish: "duda", english: "doubt"),
+            .init(spanish: "libertad", english: "freedom"),
+            .init(spanish: "ética", english: "ethics"),
+            .init(spanish: "propósito", english: "purpose"),
+            .init(spanish: "conocimiento", english: "knowledge"),
+            .init(spanish: "existencia", english: "existence"),
+        ]),
+        Theme(name: "Los Modismos", english: "Idiomatic expressions", emoji: "🧩", words: [
+            .init(spanish: "darse cuenta", english: "to realise"),
+            .init(spanish: "echar de menos", english: "to miss"),
+            .init(spanish: "tener en cuenta", english: "to bear in mind"),
+            .init(spanish: "llevar a cabo", english: "to carry out"),
+            .init(spanish: "estar de acuerdo", english: "to agree"),
+            .init(spanish: "a pesar de", english: "despite"),
+            .init(spanish: "por si acaso", english: "just in case"),
+            .init(spanish: "de vez en cuando", english: "from time to time"),
+        ]),
+    ]
+
+    static let packs: [CampaignPack] = [
+        CampaignPack(
+            id: "foundations",
+            title: "Primeros Pasos",
+            subtitle: "Build confidence across 12 storybook adventures",
+            emoji: "🗺️",
+            firstLevelIndex: 0,
+            themes: foundationThemes
+        ),
+        CampaignPack(
+            id: "master-minds",
+            title: "Mentes Maestras",
+            subtitle: "Expert vocabulary, precision routes, and mechanic puzzles",
+            emoji: "🧠",
+            firstLevelIndex: foundationThemes.count,
+            themes: masterMindThemes
+        ),
+    ]
+
+    static let themes = packs.flatMap(\.themes)
+    static let wordCount = themes.flatMap(\.words).count
 }

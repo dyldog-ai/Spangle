@@ -14,9 +14,9 @@ A one-touch platformer (Mr Jump–style) that teaches beginner Spanish, for **iO
 
 ## Ways to play
 
-- **Campaign** — 12 themed levels that unlock in order.
+- **Campaign packs** — 20 themed levels across the 12-stage Primeros Pasos journey and the eight-stage expert Mentes Maestras pack.
 - **Daily Challenge** — the same deterministic 24-word mixed run for everyone on a given day, with a daily best score.
-- **Marathon** — one long run containing all 96 built-in campaign words.
+- **Marathon** — one long run containing all 160 built-in campaign words.
 - **Word Review** — an adaptive 12-word runner that prioritises weak and due vocabulary, with normal collecting, obstacles, gates, stars, and a final quiz.
 - **QueKit Lists** — bundled and personal Spanish ↔ English lists become always-unlocked standalone levels.
 - **Character Atelier** — bank the stars from completed runs, then buy and equip 12 designs ranging from friendly recolours to 900-star prestige characters.
@@ -54,13 +54,13 @@ xcodebuild build -workspace Spangle.xcworkspace -scheme SpangleDev -destination 
 
 ## Levels
 
-The 12 themed campaign levels unlock in order. Their seeded layouts progressively introduce
-breather sections, single and double hurdles, rhythmic spike runs, translation gates,
-patrolling enemies, shields, checkpoints, and spring-assisted gaps. Platform lengths,
-coin heights, hazard spacing, gaps, and running speed vary so later levels demand
-different jump timing. Later pattern tiers add raised routes, collapsing bridges,
-wind-assisted gaps, ground tricksters, fire hoppers, and sky swoopers; descending onto
-an enemy defeats it and rebounds the player. The seed makes a retry identical and fair,
+The 20 themed campaign levels unlock in order across two packs. Primeros Pasos progressively
+introduces breather sections, hurdles, rhythmic spike runs, translation gates, enemies,
+shields, checkpoints, raised routes, collapsing bridges, and wind-assisted gaps. The expert
+Mentes Maestras pack adds mature vocabulary and four puzzle-like pattern families: shield
+resource gauntlets, chained stomp routes, narrow collapsing precision bridges, and airborne
+wind mazes. Platform lengths, coin heights, hazard spacing, gaps, and running speed tighten
+across the pack. The seed makes a retry identical and fair,
 while score combos, results, best scores, persistent ratings, and the repeatable star
 bank reward mastery and replays.
 

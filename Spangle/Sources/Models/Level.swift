@@ -38,7 +38,7 @@ struct Level {
     let items: [LevelItem]
     let finishX: CGFloat
 
-    private enum Pattern {
+    enum Pattern: Equatable {
         case hurdle
         case doubleHurdle
         case rhythmRun
@@ -48,6 +48,10 @@ struct Level {
         case crumbleBridge
         case windLift
         case springGap
+        case shieldGauntlet
+        case stompChain
+        case precisionBridge
+        case windMaze
         case breather
         case gate
     }
@@ -116,7 +120,7 @@ struct Level {
         segments.contains { worldX >= $0.startX && worldX <= $0.endX }
     }
 
-    private static func availablePatterns(for difficulty: Difficulty) -> [Pattern] {
+    static func availablePatterns(for difficulty: Difficulty) -> [Pattern] {
         var patterns: [Pattern] = [.hurdle]
         if difficulty.supportsDoubleHurdles { patterns.append(.doubleHurdle) }
         if difficulty.supportsRhythmRuns { patterns.append(.rhythmRun) }
@@ -126,6 +130,10 @@ struct Level {
         if difficulty.supportsCrumblingPlatforms { patterns.append(.crumbleBridge) }
         if difficulty.supportsWindLifts { patterns.append(.windLift) }
         if difficulty.supportsSpringGaps { patterns.append(.springGap) }
+        if difficulty.supportsShieldGauntlets { patterns.append(.shieldGauntlet) }
+        if difficulty.supportsStompChains { patterns.append(.stompChain) }
+        if difficulty.supportsPrecisionBridges { patterns.append(.precisionBridge) }
+        if difficulty.supportsWindMazes { patterns.append(.windMaze) }
         patterns.append(.breather)
         return patterns
     }
@@ -140,6 +148,10 @@ struct Level {
             return max(difficulty.segmentLength, 650)
         case .platformHop, .crumbleBridge, .windLift, .springGap:
             return max(difficulty.segmentLength, 620)
+        case .shieldGauntlet, .stompChain:
+            return max(difficulty.segmentLength * 1.3, 760)
+        case .precisionBridge, .windMaze:
+            return max(difficulty.segmentLength, 680)
         case .breather:
             return max(difficulty.segmentLength * 0.82, 500)
         case .hurdle, .doubleHurdle:
@@ -230,6 +242,48 @@ struct Level {
                 x: segment.endX + gapAfter * 0.68,
                 y: 350
             )
+
+        case .shieldGauntlet:
+            items.append(.shield(x: position(0.18), y: 90))
+            items.append(.spike(x: position(0.42)))
+            items.append(.spike(x: position(0.56)))
+            items.append(.enemy(x: position(0.72), kind: .hopper))
+            items.append(.coin(x: position(0.62), y: 175, word: word))
+            starPosition = CGPoint(x: position(0.84), y: 215)
+
+        case .stompChain:
+            items.append(.enemy(x: position(0.38), kind: .trickster))
+            items.append(.enemy(x: position(0.55), kind: .hopper))
+            items.append(.enemy(x: position(0.72), kind: .trickster))
+            items.append(.coin(x: position(0.55), y: 255, word: word))
+            starPosition = CGPoint(x: position(0.72), y: 265)
+
+        case .precisionBridge:
+            gapAfter = gap * 1.85
+            items.append(.spring(x: position(0.84)))
+            for (index, fraction) in [0.16, 0.39, 0.62, 0.84].enumerated() {
+                items.append(.platform(
+                    x: segment.endX + gapAfter * CGFloat(fraction),
+                    y: index.isMultiple(of: 2) ? 78 : 128,
+                    width: 88,
+                    kind: index == 2 ? .solid : .crumbling
+                ))
+            }
+            items.append(.coin(x: segment.endX + gapAfter * 0.62, y: 205, word: word))
+            starPosition = CGPoint(x: segment.endX + gapAfter * 0.84, y: 215)
+
+        case .windMaze:
+            gapAfter = gap * 1.7
+            items.append(.wind(x: segment.endX - 30, width: gapAfter + 100))
+            items.append(.platform(x: segment.endX + gapAfter * 0.26, y: 92,
+                                   width: 112, kind: .solid))
+            items.append(.platform(x: segment.endX + gapAfter * 0.52, y: 205,
+                                   width: 96, kind: .crumbling))
+            items.append(.platform(x: segment.endX + gapAfter * 0.79, y: 126,
+                                   width: 105, kind: .solid))
+            items.append(.enemy(x: segment.endX + gapAfter * 0.62, kind: .flyer))
+            items.append(.coin(x: segment.endX + gapAfter * 0.52, y: 290, word: word))
+            starPosition = CGPoint(x: segment.endX + gapAfter * 0.79, y: 245)
 
         case .breather:
             items.append(.coin(x: position(0.5), y: 68, word: word))

@@ -199,7 +199,7 @@ final class GameViewModel: ObservableObject {
                 index,
                 theme: selectedTheme,
                 mode: selectedMode,
-                difficultyIndex: min(index, 11),
+                difficultyIndex: selectedMode == .campaign ? index : min(index, 11),
                 seed: freshSeed(for: selectedTheme.id),
                 eyebrow: index < Campaign.themes.count ? "Nivel \(index + 1)" : "QueKit Challenge"
             )
@@ -209,7 +209,7 @@ final class GameViewModel: ObservableObject {
             index,
             theme: selectedTheme,
             mode: .campaign,
-            difficultyIndex: min(index, 11),
+            difficultyIndex: index,
             seed: freshSeed(for: selectedTheme.id),
             eyebrow: "Nivel \(index + 1)"
         )
@@ -241,7 +241,7 @@ final class GameViewModel: ObservableObject {
         let marathonTheme = Theme(
             id: "marathon",
             name: "El Maratón",
-            english: "All 96 campaign words",
+            english: "All \(Campaign.wordCount) campaign words",
             emoji: "🏁",
             words: Campaign.themes.flatMap(\.words)
         )

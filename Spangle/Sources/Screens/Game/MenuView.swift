@@ -45,13 +45,31 @@ struct MenuView: View {
                         if !customLevels.isEmpty {
                             customLevelSection
                         }
-                        levelSection(
-                            title: "Campaign",
-                            items: Array(themes.prefix(Campaign.themes.count).enumerated())
-                        )
+                        ForEach(Campaign.packs) { pack in
+                            levelSection(
+                                title: "\(pack.emoji) \(pack.title)",
+                                subtitle: pack.subtitle,
+                                items: pack.themes.enumerated().map {
+                                    (
+                                        index: pack.firstLevelIndex + $0.offset,
+                                        number: $0.offset + 1,
+                                        theme: $0.element
+                                    )
+                                }
+                            )
+                        }
                         let imported = themes.enumerated().filter { $0.offset >= Campaign.themes.count }
                         if !imported.isEmpty {
-                            levelSection(title: "QueKit Lists", items: imported)
+                            levelSection(
+                                title: "QueKit Lists",
+                                items: imported.map {
+                                    (
+                                        index: $0.offset,
+                                        number: $0.offset - Campaign.themes.count + 1,
+                                        theme: $0.element
+                                    )
+                                }
+                            )
                         }
                     }
                     .padding(.horizontal)
@@ -148,7 +166,7 @@ struct MenuView: View {
                 )
                 challengeButton(
                     title: "Marathon",
-                    subtitle: marathonBest == 0 ? "All 96 campaign words" : "Best: \(marathonBest.formatted())",
+                    subtitle: marathonBest == 0 ? "All \(Campaign.wordCount) campaign words" : "Best: \(marathonBest.formatted())",
                     icon: "flag.checkered",
                     action: onMarathon
                 )
@@ -240,22 +258,31 @@ struct MenuView: View {
         }
     }
 
-    private func levelSection(title: String, items: [(offset: Int, element: Theme)]) -> some View {
+    private func levelSection(
+        title: String,
+        subtitle: String? = nil,
+        items: [(index: Int, number: Int, theme: Theme)]
+    ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.title2.bold())
                 .foregroundStyle(Color.storybookPaper)
                 .shadow(color: .storybookInk.opacity(0.45), radius: 0, y: 2)
+            if let subtitle {
+                Text(subtitle)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color.storybookCream)
+            }
             LazyVGrid(columns: columns, alignment: .center, spacing: 14) {
-                ForEach(items, id: \.element.id) { index, theme in
-                    let locked = isLocked(index)
-                    Button { onSelect(index) } label: {
+                ForEach(items, id: \.theme.id) { item in
+                    let locked = isLocked(item.index)
+                    Button { onSelect(item.index) } label: {
                         LevelTile(
-                            number: index + 1,
-                            theme: theme,
-                            skin: .forLevel(index),
+                            number: item.number,
+                            theme: item.theme,
+                            skin: .forLevel(item.index),
                             locked: locked,
-                            starRating: bestStarRating(index)
+                            starRating: bestStarRating(item.index)
                         )
                     }
                     .buttonStyle(.plain)

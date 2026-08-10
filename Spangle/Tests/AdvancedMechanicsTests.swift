@@ -3,6 +3,20 @@ import Testing
 
 struct AdvancedMechanicsTests {
     @Test
+    func expertCampaignUnlocksFourPuzzlePatternsProgressively() {
+        let firstExpertPatterns = Level.availablePatterns(for: .forLevel(12))
+        let finalExpertPatterns = Level.availablePatterns(for: .forLevel(19))
+
+        #expect(firstExpertPatterns.contains(.shieldGauntlet))
+        #expect(!firstExpertPatterns.contains(.stompChain))
+        #expect(finalExpertPatterns.contains(.shieldGauntlet))
+        #expect(finalExpertPatterns.contains(.stompChain))
+        #expect(finalExpertPatterns.contains(.precisionBridge))
+        #expect(finalExpertPatterns.contains(.windMaze))
+        #expect(Difficulty.forLevel(19).worldSpeed > Difficulty.forLevel(11).worldSpeed)
+    }
+
+    @Test
     func lateGameUsesAllEnemyAndPlatformInteractions() {
         let words = Campaign.themes.flatMap(\.words)
         let level = Level.generate(words: words, difficulty: .forLevel(11), seed: 42)
