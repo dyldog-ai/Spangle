@@ -24,7 +24,6 @@ struct LevelCreatorView: View {
     @ObservedObject var store: LevelCreatorStore
     @Environment(\.verticalSizeClass) private var verticalSizeClass
     let initialLevelID: UUID?
-    let onPlay: (CustomLevelDefinition) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var draft = CustomLevelDefinition.empty
     @State private var selectedID: UUID?
@@ -33,6 +32,7 @@ struct LevelCreatorView: View {
     @State private var selectionStart: CGPoint?
     @State private var selectionCurrent: CGPoint?
     @State private var confirmsDeleteSelection = false
+    @State private var previewLevel: CustomLevelDefinition?
     @State private var savedDefinition: CustomLevelDefinition?
     @State private var showsVocabularyEditor = false
     @State private var vocabularyDraft = ""
@@ -96,6 +96,15 @@ struct LevelCreatorView: View {
         .sheet(isPresented: $showsVocabularyEditor) {
             vocabularyEditor
         }
+        #if os(iOS)
+        .fullScreenCover(item: $previewLevel) { level in
+            GameView(previewLevel: level) { previewLevel = nil }
+        }
+        #else
+        .sheet(item: $previewLevel) { level in
+            GameView(previewLevel: level) { previewLevel = nil }
+        }
+        #endif
         .confirmationDialog(
             "Delete \(selectedIDs.count) selected objects?",
             isPresented: $confirmsDeleteSelection,
@@ -578,8 +587,7 @@ struct LevelCreatorView: View {
 
     private func playDraft() {
         saveDraft()
-        dismiss()
-        onPlay(draft)
+        previewLevel = draft
     }
 
     private var selectionRectangle: CGRect? {

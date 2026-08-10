@@ -123,12 +123,7 @@ struct LevelCreatorLibraryView: View {
     private var editor: some View {
         LevelCreatorView(
             store: store,
-            initialLevelID: editorLevelID,
-            onPlay: { level in
-                showsEditor = false
-                dismiss()
-                onPlay(level)
-            }
+            initialLevelID: editorLevelID
         )
         .id(editorSessionID)
     }

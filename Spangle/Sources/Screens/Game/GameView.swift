@@ -5,8 +5,11 @@ import SpriteKit
 import SwiftUI
 
 struct GameView: View {
-    @StateObject private var model = GameViewModel()
+    @StateObject private var model: GameViewModel
     #if DEVELOPER_FEATURES
+    private let previewLevel: CustomLevelDefinition?
+    private let onPreviewExit: (() -> Void)?
+    @State private var startedPreview = false
     @StateObject private var levelCreatorStore = LevelCreatorStore()
     #endif
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
@@ -20,6 +23,22 @@ struct GameView: View {
     @State private var showsLevelCreator = false
     @State private var returnsToLevelCreator = false
     @State private var editingCustomLevelID: UUID?
+    #endif
+
+    init() {
+        _model = StateObject(wrappedValue: GameViewModel())
+        #if DEVELOPER_FEATURES
+        previewLevel = nil
+        onPreviewExit = nil
+        #endif
+    }
+
+    #if DEVELOPER_FEATURES
+    init(previewLevel: CustomLevelDefinition, onPreviewExit: @escaping () -> Void) {
+        _model = StateObject(wrappedValue: GameViewModel())
+        self.previewLevel = previewLevel
+        self.onPreviewExit = onPreviewExit
+    }
     #endif
 
     var body: some View {
@@ -55,12 +74,20 @@ struct GameView: View {
                 toast
             }
             overlay
-            if model.phase == .menu && !hasCompletedOnboarding {
+            if model.phase == .menu && !hasCompletedOnboarding && !isLevelPreview {
                 OnboardingOverlay { hasCompletedOnboarding = true }
                     .zIndex(20)
             }
         }
-        .task { model.reloadQueKitLevels() }
+        .task {
+            model.reloadQueKitLevels()
+            #if DEVELOPER_FEATURES
+            if let previewLevel, !startedPreview {
+                startedPreview = true
+                model.playCustomLevel(previewLevel)
+            }
+            #endif
+        }
         .onChange(of: appScenePhase) { _, newPhase in
             if newPhase != .active { model.pauseIfPlaying() }
         }
@@ -218,6 +245,14 @@ struct GameView: View {
         }
     }
 
+    private var isLevelPreview: Bool {
+        #if DEVELOPER_FEATURES
+        previewLevel != nil
+        #else
+        false
+        #endif
+    }
+
     private var customLevelMenuItems: [CustomLevelMenuItem] {
         #if DEVELOPER_FEATURES
         levelCreatorStore.levels.map {
@@ -248,6 +283,10 @@ struct GameView: View {
     private func leaveLevel() {
         model.goToMenu()
         #if DEVELOPER_FEATURES
+        if let onPreviewExit {
+            onPreviewExit()
+            return
+        }
         guard returnsToLevelCreator else { return }
         returnsToLevelCreator = false
         Task { @MainActor in showsLevelCreator = true }
@@ -256,6 +295,11 @@ struct GameView: View {
 
     private func continueAfterResults() {
         #if DEVELOPER_FEATURES
+        if let onPreviewExit {
+            model.continueAfterResults()
+            onPreviewExit()
+            return
+        }
         let shouldReturnToCreator = returnsToLevelCreator
         #else
         let shouldReturnToCreator = false
