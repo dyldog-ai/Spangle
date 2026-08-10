@@ -72,6 +72,23 @@ struct LevelCreatorTests {
     }
 
     @Test
+    func selectedObjectsCanBeDuplicatedWithNewIdentities() throws {
+        var definition = CustomLevelDefinition.empty
+        let spike = definition.addObject(kind: .spike, after: [])
+        let spring = definition.addObject(kind: .spring, after: [spike.id])
+        definition.finishX = spring.x + 200
+
+        let copies = definition.duplicateObjects(withIDs: [spike.id, spring.id])
+
+        #expect(copies.count == 2)
+        #expect(Set(copies.map(\.id)).isDisjoint(with: [spike.id, spring.id]))
+        #expect(copies.map(\.kind) == [.spike, .spring])
+        #expect(copies.map(\.x) == [spike.x + 220, spring.x + 220])
+        #expect(definition.objects.count == 4)
+        #expect(definition.finishX == spring.x + 720)
+    }
+
+    @Test
     func emptyDefinitionHasNoObjects() {
         let definition = CustomLevelDefinition.empty
         #expect(definition.objects.isEmpty)

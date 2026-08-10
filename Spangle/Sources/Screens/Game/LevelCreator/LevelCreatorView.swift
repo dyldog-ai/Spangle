@@ -185,6 +185,10 @@ struct LevelCreatorView: View {
                 Label(isRectangleSelecting ? "Drag a box" : "Select", systemImage: "rectangle.dashed")
             }
             if !selectedIDs.isEmpty {
+                Button(action: duplicateSelectedObjects) {
+                    Label("Duplicate \(selectedIDs.count)", systemImage: "plus.square.on.square")
+                }
+                .keyboardShortcut("d", modifiers: .command)
                 Button(role: .destructive) { confirmsDeleteSelection = true } label: {
                     Label("Delete \(selectedIDs.count)", systemImage: "trash.fill")
                 }
@@ -662,6 +666,12 @@ struct LevelCreatorView: View {
     private func deleteSelectedObjects() {
         draft.objects.removeAll { selectedIDs.contains($0.id) }
         clearSelection()
+    }
+
+    private func duplicateSelectedObjects() {
+        let duplicates = draft.duplicateObjects(withIDs: selectedIDs)
+        selectedIDs = Set(duplicates.map(\.id))
+        selectedID = selectedIDs.count == 1 ? selectedIDs.first : nil
     }
 
     private func add(_ kind: EditableLevelObject.Kind) {

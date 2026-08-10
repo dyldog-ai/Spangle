@@ -116,6 +116,27 @@ struct CustomLevelDefinition: Identifiable, Codable, Equatable {
         return object
     }
 
+    mutating func duplicateObjects(
+        withIDs selectedIDs: Set<UUID>,
+        offset: Double = 220
+    ) -> [EditableLevelObject] {
+        let selectedObjects = objects.filter { selectedIDs.contains($0.id) }
+        guard !selectedObjects.isEmpty else { return [] }
+
+        let duplicates = selectedObjects.map { object in
+            var copy = object
+            copy.id = UUID()
+            copy.x += offset
+            return copy
+        }
+        objects.append(contentsOf: duplicates)
+
+        if let furthestX = duplicates.map(\.x).max(), furthestX >= finishX - 100 {
+            finishX = furthestX + 500
+        }
+        return duplicates
+    }
+
     mutating func applyGeneratedVocabulary(_ generatedWords: [VocabWord]) {
         replaceVocabulary(with: generatedWords, preservingGenerationConfiguration: true)
     }
