@@ -39,10 +39,19 @@ struct LevelCreatorView: View {
                             inspector
                             objectPalette
                         }
+                        #if os(iOS)
+                        .padding(.bottom, 28)
+                        #endif
                     }
                     .scrollIndicators(.visible)
                 }
+                #if os(iOS)
+                .padding(.horizontal, 14)
+                .padding(.top, 8)
+                .ignoresSafeArea(.container, edges: .bottom)
+                #else
                 .padding(14)
+                #endif
             }
             .navigationTitle("Level Creator")
             #if os(iOS)
