@@ -151,7 +151,7 @@ final class GameViewModel: ObservableObject {
                     theme: generatedTheme,
                     mode: .imported,
                     difficultyIndex: min(index, 8),
-                    seed: StableSeed.make(generatedTheme.id),
+                    seed: freshSeed(for: generatedTheme.id),
                     eyebrow: "QueKit Challenge"
                 )
             } catch {
@@ -175,7 +175,7 @@ final class GameViewModel: ObservableObject {
                 theme: selectedTheme,
                 mode: selectedMode,
                 difficultyIndex: min(index, 11),
-                seed: StableSeed.make(selectedTheme.id),
+                seed: freshSeed(for: selectedTheme.id),
                 eyebrow: index < Campaign.themes.count ? "Nivel \(index + 1)" : "QueKit Challenge"
             )
         }
@@ -215,7 +215,7 @@ final class GameViewModel: ObservableObject {
             theme: marathonTheme,
             mode: .marathon,
             difficultyIndex: 9,
-            seed: StableSeed.make("spangle.marathon"),
+            seed: freshSeed(for: "spangle.marathon"),
             eyebrow: "Marathon"
         )
     }
@@ -574,6 +574,10 @@ final class GameViewModel: ObservableObject {
 
     private func starRatingKey(for theme: Theme) -> String {
         "challengeStarRating.\(theme.id)"
+    }
+
+    private func freshSeed(for identifier: String) -> UInt64 {
+        StableSeed.make(identifier) ^ UInt64.random(in: 1...UInt64.max)
     }
 
     private func dailySeed(on date: Date = .now) -> UInt64 {

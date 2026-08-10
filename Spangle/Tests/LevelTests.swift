@@ -45,6 +45,22 @@ struct LevelTests {
     }
 
     @Test
+    func differentSeedsRandomizeCoinOrder() {
+        let first = Level.generate(words: words, difficulty: .forLevel(4), seed: 1)
+        let second = Level.generate(words: words, difficulty: .forLevel(4), seed: 2)
+        let firstOrder = first.items.compactMap { item -> String? in
+            guard case let .coin(_, _, word) = item else { return nil }
+            return word.id
+        }
+        let secondOrder = second.items.compactMap { item -> String? in
+            guard case let .coin(_, _, word) = item else { return nil }
+            return word.id
+        }
+
+        #expect(firstOrder != secondOrder)
+    }
+
+    @Test
     func sameSeedProducesTheSameLevel() {
         let first = Level.generate(words: words, difficulty: .forLevel(8), seed: 42)
         let second = Level.generate(words: words, difficulty: .forLevel(8), seed: 42)
