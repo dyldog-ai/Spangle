@@ -98,7 +98,7 @@ struct Level {
                 items: &items
             )
             if i == checkpointChunk {
-                items.append(.checkpoint(x: segment.startX + segmentLength * 0.1))
+                items.append(.checkpoint(x: segment.startX + segmentLength * 0.05))
             }
             if difficulty.supportsShields && i == 1 {
                 items.append(.shield(x: segment.startX + segmentLength * 0.22, y: 92))
@@ -236,9 +236,11 @@ struct Level {
             starPosition = CGPoint(x: position(0.72), y: 185)
 
         case .gate:
-            items.append(.gate(x: position(0.2)))
-            items.append(.coin(x: position(0.55), y: 82, word: word))
-            starPosition = CGPoint(x: position(0.72), y: 160)
+            // Keep teaching collectibles visually clear of the tall gate flag,
+            // especially on compact iPhone landscapes where markers scale.
+            items.append(.gate(x: position(0.14)))
+            items.append(.coin(x: position(0.68), y: 82, word: word))
+            starPosition = CGPoint(x: position(0.84), y: 160)
         }
 
         if includesStar {

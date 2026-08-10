@@ -8,6 +8,25 @@ struct LevelTests {
     }
 
     @Test
+    func gateFlagsStayClearOfWordCoins() {
+        for seed in 0..<20 {
+            let level = Level.generate(words: words, difficulty: .forLevel(11), seed: UInt64(seed))
+            let gates = level.items.compactMap { item -> CGFloat? in
+                guard case let .gate(x) = item else { return nil }
+                return x
+            }
+            let coins = level.items.compactMap { item -> CGFloat? in
+                guard case let .coin(x, _, _) = item else { return nil }
+                return x
+            }
+
+            for gate in gates {
+                #expect(coins.allSatisfy { abs($0 - gate) >= 150 })
+            }
+        }
+    }
+
+    @Test
     func highSpeedGatesLeaveEnoughRunwayWithoutPausingScroll() throws {
         let difficulty = Difficulty.forLevel(20)
         let level = Level.generate(words: words, difficulty: difficulty)
