@@ -7,7 +7,7 @@ struct LevelCreatorTests {
     @Test
     func vocabularyListReplacesWordCoins() throws {
         let words = try #require(CustomLevelDefinition.parseVocabulary("gato = cat\nperro = dog\nsol = sun\nluna = moon\nagua = water"))
-        var definition = CustomLevelDefinition.starter
+        var definition = CustomLevelDefinition.empty
 
         definition.replaceVocabulary(with: words)
 
@@ -18,10 +18,19 @@ struct LevelCreatorTests {
     }
 
     @Test
-    func starterDefinitionIsPlayableAndBuildsItsGap() throws {
-        let definition = CustomLevelDefinition.starter
+    func emptyDefinitionHasNoObjects() {
+        let definition = CustomLevelDefinition.empty
+        #expect(definition.objects.isEmpty)
+        #expect(definition.words.isEmpty)
+    }
+
+    @Test
+    func customDefinitionBuildsItsGap() throws {
+        let words = try #require(CustomLevelDefinition.parseVocabulary("uno = one\ndos = two\ntres = three\ncuatro = four"))
+        var definition = CustomLevelDefinition.empty
+        definition.replaceVocabulary(with: words)
+        definition.objects.append(.make(kind: .gap, x: 2_150))
         #expect(definition.validationMessage == nil)
-        #expect(definition.words.count >= 4)
 
         let level = definition.makeLevel()
         let gap = try #require(definition.objects.first { $0.kind == .gap })
@@ -35,7 +44,7 @@ struct LevelCreatorTests {
         let defaults = try #require(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
         let store = LevelCreatorStore(defaults: defaults)
-        var definition = CustomLevelDefinition.starter
+        var definition = CustomLevelDefinition.empty
         definition.title = "Saved Timeline"
         store.save(definition)
         definition.title = "Updated Timeline"

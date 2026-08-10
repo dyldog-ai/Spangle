@@ -10,38 +10,13 @@ struct CustomLevelDefinition: Identifiable, Codable, Equatable {
     var difficultyIndex: Int
     var objects: [EditableLevelObject]
 
-    static var starter: CustomLevelDefinition {
-        var firstCoin = EditableLevelObject.make(kind: .coin, x: 900)
-        firstCoin.spanish = "hola"
-        firstCoin.english = "hello"
-        var secondCoin = EditableLevelObject.make(kind: .coin, x: 2_150)
-        secondCoin.spanish = "salta"
-        secondCoin.english = "jump"
-        var thirdCoin = EditableLevelObject.make(kind: .coin, x: 3_250)
-        thirdCoin.spanish = "estrella"
-        thirdCoin.english = "star"
-        var fourthCoin = EditableLevelObject.make(kind: .coin, x: 4_050)
-        fourthCoin.spanish = "meta"
-        fourthCoin.english = "finish"
-        return CustomLevelDefinition(
-            title: "My Level",
+    static var empty: CustomLevelDefinition {
+        CustomLevelDefinition(
+            title: "Untitled Level",
             emoji: "🛠️",
             finishX: 4_800,
             difficultyIndex: 3,
-            objects: [
-                firstCoin,
-                .make(kind: .spike, x: 1_250),
-                .make(kind: .solidPlatform, x: 1_650),
-                .make(kind: .star, x: 1_650),
-                .make(kind: .gap, x: 2_150),
-                .make(kind: .spring, x: 1_950),
-                secondCoin,
-                .make(kind: .gate, x: 2_700),
-                .make(kind: .hopper, x: 3_200),
-                thirdCoin,
-                .make(kind: .checkpoint, x: 3_600),
-                fourthCoin,
-            ]
+            objects: []
         )
     }
 

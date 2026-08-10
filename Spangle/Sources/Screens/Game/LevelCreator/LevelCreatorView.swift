@@ -12,7 +12,7 @@ struct LevelCreatorView: View {
     let initialLevelID: UUID?
     let onPlay: (CustomLevelDefinition) -> Void
     @Environment(\.dismiss) private var dismiss
-    @State private var draft = CustomLevelDefinition.starter
+    @State private var draft = CustomLevelDefinition.empty
     @State private var selectedID: UUID?
     @State private var savedDefinition: CustomLevelDefinition?
     @State private var showsVocabularyEditor = false
@@ -59,7 +59,7 @@ struct LevelCreatorView: View {
     private var creatorActionBar: some View {
         HStack(spacing: isCompactEditor ? 7 : 10) {
             Button {
-                draft = .starter
+                draft = .empty
                 draft.id = UUID()
                 savedDefinition = nil
                 selectedID = nil

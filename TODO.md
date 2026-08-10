@@ -7,7 +7,8 @@
 - [x] When playing the level from the editor, exiting the level should take me back to the editor
 - [x] I should be able to delete saved levels
 - [x] Rather than going straight into the level editor when tapping the button, go into a list where I can select and edit a previously made level or create a new one, delete them, etc.
-- [ ] New levels should be empty
+- [x] New levels should be empty
 - [ ] Level creator on iOS
     - [ ] Remove navigation bar -- takes up to much vertical space
     - [ ] Scrollview should go all the way to the bottom
+- [ ] Allow created level vocabulary to be generated from a prompt instead of providing a manual word list
