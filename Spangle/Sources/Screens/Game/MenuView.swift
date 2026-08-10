@@ -15,6 +15,7 @@ struct MenuView: View {
     let starBalance: Int
     let selectedCharacter: CharacterDesign
     let onCharacters: () -> Void
+    let onLevelCreator: () -> Void
     let onProgress: () -> Void
     let onSettings: () -> Void
 
@@ -69,6 +70,17 @@ struct MenuView: View {
                     }
                 }
                 .accessibilityLabel("Settings")
+                #if DEVELOPER_FEATURES
+                Button(action: onLevelCreator) {
+                    if horizontalSizeClass == .compact {
+                        Image(systemName: "hammer.fill")
+                            .frame(width: 24)
+                    } else {
+                        Label("Creator", systemImage: "hammer.fill")
+                    }
+                }
+                .accessibilityLabel("Level Creator")
+                #endif
                 Spacer()
             }
             .buttonStyle(StorybookSecondaryButtonStyle())

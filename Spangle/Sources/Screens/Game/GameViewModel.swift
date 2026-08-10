@@ -274,6 +274,33 @@ final class GameViewModel: ObservableObject {
         )
     }
 
+    #if DEVELOPER_FEATURES
+    func playCustomLevel(_ definition: CustomLevelDefinition) {
+        guard definition.validationMessage == nil else { return }
+        let words = definition.words
+        let theme = Theme(
+            id: "custom.\(definition.id.uuidString)",
+            name: definition.title,
+            english: "Developer-created level",
+            emoji: definition.emoji.isEmpty ? "🛠️" : definition.emoji,
+            words: words
+        )
+        feedback.stopMusic()
+        activeTheme = theme
+        mode = .imported
+        levelIndex = min(definition.difficultyIndex, Campaign.themes.count - 1)
+        resetRunProgress()
+        scene.loadCustom(
+            level: definition.makeLevel(),
+            words: words,
+            difficulty: .forLevel(definition.difficultyIndex),
+            skin: .forLevel(definition.difficultyIndex)
+        )
+        scene.setCharacterDesign(characters.selected)
+        phase = .intro(eyebrow: "Custom Level", theme: theme)
+    }
+    #endif
+
     func goToMenu() {
         #if DEVELOPER_INTEGRATIONS
         generationTask?.cancel()
@@ -543,6 +570,22 @@ final class GameViewModel: ObservableObject {
         feedback.startMusic(style: levelIndex)
         scene.restart()
         scene.begin()
+    }
+
+    func unlockEverything() {
+        #if DEVELOPER_FEATURES
+        unlockedThrough = Campaign.themes.count - 1
+        defaults.set(unlockedThrough, forKey: unlockKey)
+        objectWillChange.send()
+        #endif
+    }
+
+    func clearLevelUnlocks() {
+        #if DEVELOPER_FEATURES
+        unlockedThrough = 0
+        defaults.removeObject(forKey: unlockKey)
+        objectWillChange.send()
+        #endif
     }
 
     func resetAllProgress() {

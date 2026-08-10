@@ -20,6 +20,7 @@ final class GameScene: SKScene {
     private var difficulty: Difficulty = .forLevel(0)
     private var skin: Skin = .forLevel(0)
     private var level = Level.generate(words: Campaign.themes[0].words, difficulty: .forLevel(0))
+    private var customLevel: Level?
     private var levelSeed: UInt64 = 0
     private var scroll: CGFloat = 0
     private var playerY: CGFloat = 0   // height above the ground surface
@@ -1292,9 +1293,21 @@ final class GameScene: SKScene {
         self.words = words
         self.difficulty = difficulty
         self.skin = skin
+        customLevel = nil
         levelSeed = seed
         rebuild()
     }
+
+    #if DEVELOPER_FEATURES
+    func loadCustom(level: Level, words: [VocabWord], difficulty: Difficulty, skin: Skin) {
+        self.words = words
+        self.difficulty = difficulty
+        self.skin = skin
+        customLevel = level
+        levelSeed = 0
+        rebuild()
+    }
+    #endif
 
     func setCharacterDesign(_ design: CharacterDesign) {
         player.apply(design: design)
@@ -1324,7 +1337,7 @@ final class GameScene: SKScene {
     /// Rebuild the current level geometry and reset all player state, leaving
     /// the scene paused until `begin()` is called.
     private func rebuild() {
-        level = Level.generate(words: words, difficulty: difficulty, seed: levelSeed)
+        level = customLevel ?? Level.generate(words: words, difficulty: difficulty, seed: levelSeed)
         scroll = 0
         playerY = 0
         vy = 0

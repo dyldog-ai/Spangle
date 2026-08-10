@@ -6,6 +6,9 @@ import SwiftUI
 
 struct GameView: View {
     @StateObject private var model = GameViewModel()
+    #if DEVELOPER_FEATURES
+    @StateObject private var levelCreatorStore = LevelCreatorStore()
+    #endif
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @Environment(\.scenePhase) private var appScenePhase
     @State private var showsDeveloperNotes = false
@@ -13,6 +16,9 @@ struct GameView: View {
     @State private var showsProgress = false
     @State private var showsCharacters = false
     @State private var jumpPressActive = false
+    #if DEVELOPER_FEATURES
+    @State private var showsLevelCreator = false
+    #endif
 
     var body: some View {
         #if DEVELOPER_INTEGRATIONS
@@ -57,10 +63,15 @@ struct GameView: View {
             if newPhase != .active { model.pauseIfPlaying() }
         }
         .sheet(isPresented: $showsSettings) {
-            SettingsView(settings: model.settings) {
-                model.resetAllProgress()
-                hasCompletedOnboarding = false
-            }
+            SettingsView(
+                settings: model.settings,
+                onReset: {
+                    model.resetAllProgress()
+                    hasCompletedOnboarding = false
+                },
+                onUnlockEverything: model.unlockEverything,
+                onClearUnlocks: model.clearLevelUnlocks
+            )
         }
         .sheet(isPresented: $showsProgress) {
             LearningProgressView(store: model.learning, onReview: model.startReview)
@@ -71,6 +82,11 @@ struct GameView: View {
                 onSelectionChanged: model.refreshCharacterDesign
             )
         }
+        #if DEVELOPER_FEATURES
+        .sheet(isPresented: $showsLevelCreator) {
+            LevelCreatorView(store: levelCreatorStore, onPlay: model.playCustomLevel)
+        }
+        #endif
         .transaction { transaction in
             if model.settings.reducedMotion { transaction.animation = nil }
         }
@@ -186,6 +202,12 @@ struct GameView: View {
         }
     }
 
+    private func openLevelCreator() {
+        #if DEVELOPER_FEATURES
+        showsLevelCreator = true
+        #endif
+    }
+
     @ViewBuilder private var overlay: some View {
         switch model.phase {
         case .menu:
@@ -202,6 +224,7 @@ struct GameView: View {
                 starBalance: model.characters.starBalance,
                 selectedCharacter: model.characters.selected,
                 onCharacters: { showsCharacters = true },
+                onLevelCreator: openLevelCreator,
                 onProgress: { showsProgress = true },
                 onSettings: { showsSettings = true }
             )

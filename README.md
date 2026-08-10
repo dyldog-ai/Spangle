@@ -29,19 +29,19 @@ First-run instructions, bidirectional quiz labels, accessibility values, keyboar
 
 ## Run it
 
-Normal generation produces the production project with no QueKit/QYayKit packages,
-code, resources, or iCloud entitlements. Developer integrations are explicit opt-in:
+Generation creates two explicit products. `Spangle` is the production target and
+links no QueKit/QYayKit products, developer code paths, resources, or iCloud
+entitlements. `SpangleDev` has a separate bundle identifier and includes QueKit lists,
+QYay notes, the visual level creator, and developer unlock controls.
 
 ```bash
-# Production/default
 tuist generate --no-open
 
-# Local developer build with QueKit lists and QYay notes
-SPANGLE_DEVELOPER_INTEGRATIONS=1 tuist generate --no-open
-# macOS
-xcodebuild build -workspace Spangle.xcworkspace -scheme Spangle -destination "platform=macOS"
-# iOS simulator
-xcodebuild build -workspace Spangle.xcworkspace -scheme Spangle -destination "generic/platform=iOS Simulator"
+# Production
+xcodebuild build -workspace Spangle.xcworkspace -scheme Spangle -configuration Release -destination "generic/platform=iOS Simulator"
+
+# Developer app
+xcodebuild build -workspace Spangle.xcworkspace -scheme SpangleDev -destination "platform=macOS"
 ```
 
 ## Structure
@@ -49,7 +49,8 @@ xcodebuild build -workspace Spangle.xcworkspace -scheme Spangle -destination "ge
 - `Spangle/Sources/Models` — vocabulary, deterministic generation, quiz questions, settings, run summaries, and persistent mastery.
 - `Spangle/Sources/Screens/Game` — `GameScene` (SpriteKit manual physics/checkpoints), `GameViewModel` (modes, progression, scoring, learning), and SwiftUI screens/overlays.
 - `Spangle/Sources/Shared` — procedural feedback and shared extensions.
-- `Spangle/Tests` — deterministic layout, level safety, quiz, queue, mastery persistence, review ordering, and results tests.
+- `Spangle/Tests` — production gameplay, persistence, learning, and rendering tests.
+- `Spangle/DevTests` — developer-only level creator geometry and persistence tests.
 
 ## Levels
 
@@ -62,6 +63,13 @@ wind-assisted gaps, ground tricksters, fire hoppers, and sky swoopers; descendin
 an enemy defeats it and rebounds the player. The seed makes a retry identical and fair,
 while score combos, results, best scores, persistent ratings, and the repeatable star
 bank reward mastery and replays.
+
+The `SpangleDev` target adds a visual timeline creator behind the hammer button.
+It can drag and inspect word coins, gaps, platforms, hazards, gates, springs, stars,
+all enemy types, updrafts, shields, and checkpoints; edit vocabulary and difficulty;
+save local presets; and launch the exact custom geometry for immediate playtesting.
+The editor, models, persistence, UI, and play path are conditionally compiled out of
+normal projects and production archives.
 
 Opt-in developer builds can import every Spanish ↔ English list from the sibling
 `QueKit` package—including bundled lists and user-created iCloud lists—as additional,
