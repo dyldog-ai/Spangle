@@ -54,6 +54,7 @@ final class GameScene: SKScene {
     private var winds: [WindNode] = []
     private var shields: [ShieldNode] = []
     private var checkpoints: [CheckpointNode] = []
+    private var finishNode: SKNode?
     private var spikes: [CGFloat] = []
 
     private final class CoinNode {
@@ -251,6 +252,7 @@ final class GameScene: SKScene {
         winds.removeAll()
         shields.removeAll()
         checkpoints.removeAll()
+        finishNode = nil
         spikes.removeAll()
 
         for seg in level.segments {
@@ -301,7 +303,9 @@ final class GameScene: SKScene {
             }
         }
 
-        worldNode.addChild(makeFinish(at: level.finishX))
+        let finish = makeFinish(at: level.finishX)
+        worldNode.addChild(finish)
+        finishNode = finish
         layoutWorldHeights()
     }
 
@@ -840,8 +844,13 @@ final class GameScene: SKScene {
     /// current ground surface every layout so resizing stays correct.
     private func layoutWorldHeights() {
         worldNode.position = CGPoint(x: -scroll, y: groundTopY)
+        let tallMarkerScale = min(1, max(0.68, (size.height - groundTopY - 72) / 310))
         for coin in coins { coin.node.position.y = coin.y }
-        for gate in gates { gate.node.position.y = 0 }
+        for gate in gates {
+            gate.node.position.y = 0
+            gate.node.setScale(tallMarkerScale)
+        }
+        finishNode?.setScale(tallMarkerScale)
         for spring in springs { spring.node.position.y = 0 }
         for star in challengeStars { star.node.position.y = star.y }
         for enemy in enemies { enemy.node.position.y = enemyHeight(enemy) }
