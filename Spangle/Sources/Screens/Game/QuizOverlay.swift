@@ -7,43 +7,45 @@ struct QuizOverlay: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.6).ignoresSafeArea()
-            VStack(spacing: 18) {
-                Text(question.heading)
-                    .font(.headline)
-                    .foregroundStyle(.secondary)
-                Text(directionLabel)
-                    .font(.caption.bold())
-                    .foregroundStyle(.secondary)
-                Text(question.prompt)
-                    .font(.system(size: 42, weight: .heavy, design: .rounded))
-                    .multilineTextAlignment(.center)
-                    .minimumScaleFactor(0.65)
-                LazyVGrid(columns: columns, spacing: 12) {
-                    ForEach(question.options, id: \.self) { option in
-                        Button { onPick(option) } label: {
-                            Text(option)
-                                .font(.title3.bold())
-                                .frame(maxWidth: .infinity, minHeight: 48)
-                                .padding(.horizontal, 8)
+            Color.storybookInk.opacity(0.72).ignoresSafeArea()
+            StorybookPanel {
+                VStack(spacing: 15) {
+                    Label(question.heading.uppercased(), systemImage: "book.pages.fill")
+                        .font(.caption.weight(.black))
+                        .tracking(1.6)
+                        .foregroundStyle(Color.storybookRed)
+                    Text(directionLabel)
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(Color.storybookInk.opacity(0.55))
+                    Text(question.prompt)
+                        .font(.system(size: 42, weight: .black, design: .rounded))
+                        .multilineTextAlignment(.center)
+                        .minimumScaleFactor(0.65)
+                        .padding(.vertical, 2)
+                    LazyVGrid(columns: columns, spacing: 12) {
+                        ForEach(question.options, id: \.self) { option in
+                            Button { onPick(option) } label: {
+                                Text(option)
+                                    .font(.title3.weight(.bold))
+                                    .frame(maxWidth: .infinity, minHeight: 50)
+                                    .padding(.horizontal, 10)
+                            }
+                            .buttonStyle(StorybookSecondaryButtonStyle())
                         }
-                        .buttonStyle(.borderedProminent)
                     }
+                    .frame(maxWidth: 550)
                 }
-                .frame(maxWidth: 520)
             }
-            .padding(28)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24))
-            .padding()
+            .padding(22)
         }
         .accessibilityElement(children: .contain)
     }
 
-    private let columns = [GridItem(.adaptive(minimum: 180), spacing: 12)]
+    private let columns = [GridItem(.adaptive(minimum: 190), spacing: 12)]
 
     private var directionLabel: String {
         question.direction == .spanishToEnglish
-            ? "SPANISH → ENGLISH"
-            : "ENGLISH → SPANISH"
+            ? "SPANISH  →  ENGLISH"
+            : "ENGLISH  →  SPANISH"
     }
 }

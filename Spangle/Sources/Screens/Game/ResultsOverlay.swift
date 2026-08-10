@@ -8,47 +8,62 @@ struct ResultsOverlay: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.66).ignoresSafeArea()
-            VStack(spacing: 14) {
-                Text(summary.stars == Level.challengeStarCount ? "🌟" : "🎉")
-                    .font(.system(size: 54))
-                Text("Run complete")
-                    .font(.caption.bold())
-                    .foregroundStyle(.secondary)
-                Text(summary.title)
-                    .font(.system(size: 34, weight: .heavy, design: .rounded))
-                HStack(spacing: 22) {
-                    result("Score", summary.score.formatted())
-                    result("Stars", "\(summary.stars)/3")
-                    result("Accuracy", "\(summary.accuracy)%")
-                    result("Time", durationText)
-                }
-                .padding(.vertical, 8)
-                Text("\(summary.wordsCollected) word coins · \(summary.correctAnswers) correct")
-                    .foregroundStyle(.secondary)
-                if summary.usedCheckpoint {
-                    Label("Recovered from a checkpoint", systemImage: "flag.checkered")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                Button(nextTheme == nil ? "Back to menu" : "Next level", action: onContinue)
-                    .buttonStyle(.borderedProminent)
-                    .keyboardShortcut(.defaultAction)
-                if nextTheme != nil {
-                    Button("Menu", action: onMenu)
+            Color.storybookInk.opacity(0.74).ignoresSafeArea()
+            StorybookPanel {
+                VStack(spacing: 13) {
+                    HStack(spacing: 5) {
+                        ForEach(0..<Level.challengeStarCount, id: \.self) { index in
+                            Image(systemName: index < summary.stars ? "star.fill" : "star")
+                                .font(.system(size: 27, weight: .bold))
+                                .foregroundStyle(index < summary.stars ? Color.storybookGold : Color.storybookInk.opacity(0.25))
+                                .rotationEffect(.degrees(index == 1 ? 0 : (index == 0 ? -8 : 8)))
+                        }
+                    }
+                    Text("RUN COMPLETE")
+                        .font(.caption.weight(.black))
+                        .tracking(2)
+                        .foregroundStyle(Color.storybookRed)
+                    Text(summary.title)
+                        .font(.system(size: 33, weight: .black, design: .rounded))
+                    HStack(spacing: 12) {
+                        result("Score", summary.score.formatted(), icon: "seal.fill")
+                        result("Stars", "\(summary.stars)/3", icon: "star.fill")
+                        result("Accuracy", "\(summary.accuracy)%", icon: "checkmark.circle.fill")
+                        result("Time", durationText, icon: "clock.fill")
+                    }
+                    Text("\(summary.wordsCollected) word coins · \(summary.correctAnswers) correct")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.storybookInk.opacity(0.62))
+                    if summary.usedCheckpoint {
+                        Label("Recovered from a checkpoint", systemImage: "flag.checkered")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.storybookInk.opacity(0.58))
+                    }
+                    Button(nextTheme == nil ? "Back to menu" : "Next level", action: onContinue)
+                        .buttonStyle(StorybookPrimaryButtonStyle())
+                        .keyboardShortcut(.defaultAction)
+                    if nextTheme != nil {
+                        Button("Menu", action: onMenu)
+                            .buttonStyle(StorybookSecondaryButtonStyle())
+                    }
                 }
             }
-            .padding(28)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24))
-            .padding()
+            .padding(22)
         }
     }
 
-    private func result(_ label: String, _ value: String) -> some View {
+    private func result(_ label: String, _ value: String, icon: String) -> some View {
         VStack(spacing: 3) {
-            Text(value).font(.title3.bold()).monospacedDigit()
-            Text(label).font(.caption).foregroundStyle(.secondary)
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundStyle(Color.storybookBlue)
+            Text(value).font(.headline.bold()).monospacedDigit()
+            Text(label).font(.caption2).foregroundStyle(Color.storybookInk.opacity(0.55))
         }
+        .frame(minWidth: 74)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 6)
+        .background(Color.white.opacity(0.48), in: RoundedRectangle(cornerRadius: 13))
         .accessibilityElement(children: .combine)
     }
 

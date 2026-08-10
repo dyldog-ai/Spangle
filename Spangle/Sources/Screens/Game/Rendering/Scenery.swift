@@ -54,20 +54,35 @@ enum Scenery {
             stars(into: far, span: farSpan, rng: &rng)
             hillBands(into: near, span: nearSpan, skin: skin, rng: &rng, distant: false)
         }
+        if skin.decor != .rain && skin.decor != .mountains {
+            birds(into: far, span: farSpan, color: skin.soil.darker(0.18), rng: &rng)
+        }
+        if skin.decor != .city && skin.decor != .rain {
+            wildflowers(into: near, span: nearSpan, skin: skin, rng: &rng)
+        }
         return Layers(far: far, near: near)
     }
 
-    /// A glowing sun/moon disc that stays fixed on screen (does not scroll).
+    /// A softly painted sun or moon that stays fixed on screen.
     static func celestial(skin: Skin) -> SKNode {
         let node = SKNode()
-        let glow = SKShapeNode(circleOfRadius: 62)
-        glow.fillColor = skin.celestial.withAlphaComponent(0.35)
-        glow.strokeColor = .clear
+        for (radius, alpha) in [(72.0, 0.08), (60.0, 0.12), (51.0, 0.18)] {
+            let glow = SKShapeNode(circleOfRadius: radius)
+            glow.fillColor = skin.celestial.withAlphaComponent(alpha)
+            glow.strokeColor = .clear
+            node.addChild(glow)
+        }
         let disc = SKShapeNode(circleOfRadius: 42)
         disc.fillColor = skin.celestial
-        disc.strokeColor = .clear
-        node.addChild(glow)
+        disc.strokeColor = skin.celestial.darker(0.12).withAlphaComponent(0.45)
+        disc.lineWidth = 2
         node.addChild(disc)
+
+        let wash = SKShapeNode(ellipseOf: CGSize(width: 48, height: 16))
+        wash.fillColor = .white.withAlphaComponent(0.18)
+        wash.strokeColor = .clear
+        wash.position = CGPoint(x: -8, y: 16)
+        disc.addChild(wash)
         return node
     }
 
@@ -125,11 +140,17 @@ enum Scenery {
         while x < span {
             let cloud = SKNode()
             let scale = CGFloat.random(in: 0.7...1.4, using: &rng)
+            let shadow = SKShapeNode(ellipseOf: CGSize(width: 116, height: 42))
+            shadow.fillColor = color.darker(0.18).withAlphaComponent(0.16)
+            shadow.strokeColor = .clear
+            shadow.position.y = -13
+            cloud.addChild(shadow)
             for (dx, dy, r): (CGFloat, CGFloat, CGFloat) in
                 [(-40, 0, 34), (0, 8, 44), (42, 0, 32), (0, -8, 40)] {
                 let puff = SKShapeNode(circleOfRadius: r)
                 puff.fillColor = color
-                puff.strokeColor = .clear
+                puff.strokeColor = color.darker(0.08).withAlphaComponent(0.28)
+                puff.lineWidth = 1.5
                 puff.position = CGPoint(x: dx, y: dy)
                 cloud.addChild(puff)
             }
@@ -318,6 +339,61 @@ enum Scenery {
             star.alpha = CGFloat.random(in: 0.5...1, using: &rng)
             node.addChild(star)
             x += CGFloat.random(in: 60...140, using: &rng)
+        }
+    }
+
+    private static func birds(into node: SKNode, span: CGFloat, color: SKColor,
+                              rng: inout SeededGenerator) {
+        var x = CGFloat.random(in: 260...620, using: &rng)
+        while x < span {
+            let bird = SKShapeNode()
+            let path = CGMutablePath()
+            path.move(to: CGPoint(x: -13, y: 0))
+            path.addQuadCurve(to: .zero, control: CGPoint(x: -6, y: 8))
+            path.addQuadCurve(to: CGPoint(x: 13, y: 0), control: CGPoint(x: 6, y: 8))
+            bird.path = path
+            bird.strokeColor = color.withAlphaComponent(0.52)
+            bird.lineWidth = 2.2
+            bird.lineCap = .round
+            bird.fillColor = .clear
+            bird.position = CGPoint(x: x, y: CGFloat.random(in: 290...480, using: &rng))
+            bird.setScale(CGFloat.random(in: 0.75...1.25, using: &rng))
+            node.addChild(bird)
+            x += CGFloat.random(in: 620...1_050, using: &rng)
+        }
+    }
+
+    private static func wildflowers(into node: SKNode, span: CGFloat, skin: Skin,
+                                    rng: inout SeededGenerator) {
+        let colors = [skin.accent, skin.celestial, .white, skin.grass.lighter(0.34)]
+        var x = CGFloat.random(in: 30...100, using: &rng)
+        var index = 0
+        while x < span {
+            let flower = SKNode()
+            let height = CGFloat.random(in: 14...30, using: &rng)
+            let stem = SKShapeNode(rectOf: CGSize(width: 2, height: height))
+            stem.fillColor = skin.grass.darker(0.28)
+            stem.strokeColor = .clear
+            stem.position.y = height / 2
+            flower.addChild(stem)
+            for angle in stride(from: CGFloat.zero, to: .pi * 2, by: .pi / 2) {
+                let petal = SKShapeNode(ellipseOf: CGSize(width: 6, height: 9))
+                petal.fillColor = colors[index % colors.count].withAlphaComponent(0.8)
+                petal.strokeColor = .clear
+                petal.position = CGPoint(x: cos(angle) * 3.2, y: height + sin(angle) * 3.2)
+                petal.zRotation = angle - .pi / 2
+                flower.addChild(petal)
+            }
+            let center = SKShapeNode(circleOfRadius: 2.5)
+            center.fillColor = skin.celestial.darker(0.08)
+            center.strokeColor = .clear
+            center.position.y = height
+            flower.addChild(center)
+            flower.position.x = x
+            flower.alpha = 0.82
+            node.addChild(flower)
+            x += CGFloat.random(in: 100...240, using: &rng)
+            index += 1
         }
     }
 

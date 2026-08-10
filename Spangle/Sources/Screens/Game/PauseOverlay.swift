@@ -7,19 +7,23 @@ struct PauseOverlay: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.62).ignoresSafeArea()
-            VStack(spacing: 14) {
-                Text("Paused")
-                    .font(.system(size: 40, weight: .heavy, design: .rounded))
-                Button("Resume", action: onResume)
-                    .buttonStyle(.borderedProminent)
-                    .keyboardShortcut(.defaultAction)
-                Button("Settings", action: onSettings)
-                Button("Return to menu", action: onMenu)
+            Color.storybookInk.opacity(0.7).ignoresSafeArea()
+            StorybookPanel {
+                VStack(spacing: 14) {
+                    Image(systemName: "pause.circle.fill")
+                        .font(.system(size: 46))
+                        .foregroundStyle(Color.storybookBlue)
+                    Text("Paused")
+                        .font(.system(size: 39, weight: .black, design: .rounded))
+                    Button("Resume", action: onResume)
+                        .buttonStyle(StorybookPrimaryButtonStyle())
+                        .keyboardShortcut(.defaultAction)
+                    Button("Settings", action: onSettings)
+                        .buttonStyle(StorybookSecondaryButtonStyle())
+                    Button("Return to menu", action: onMenu)
+                        .buttonStyle(StorybookSecondaryButtonStyle())
+                }
             }
-            .font(.title3.bold())
-            .padding(32)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24))
         }
     }
 }

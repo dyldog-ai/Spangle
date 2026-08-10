@@ -63,11 +63,19 @@ Prompt lists generate 16 fresh word pairs with Apple Foundation Models before th
 level begins. Fixed lists start immediately. QueKit lists are shared through the
 `iCloud.com.dylanelliott.QueKit` iCloud Documents container.
 
-## Graphics
+## Art and sound
 
-Every level has a custom-drawn visual identity via a `Skin` (palette + parallax
-`Decor` style) rendered by `Scenery`: gradient skies, a sun/moon disc, and
-layered parallax backdrops (rainbow hills, clouds, rain, savanna, forest, town,
-city skyline, night mountains). The player is a vector `PlayerNode` character.
-Menu tiles preview each level's palette. All graphics are procedural — no image
-assets required.
+Spangle uses a cohesive Spanish storybook art direction across gameplay and UI.
+Every level has a custom-drawn visual identity via a `Skin` rendered by
+`Scenery`: paper-grained skies, softly painted celestial light, layered parallax
+backdrops, flowers, birds, architecture, weather, and theme-specific landscapes.
+Sol, the golden scarf-wearing mascot, world props, hazards, collectibles, gates,
+and particle effects are scalable SpriteKit vectors. Parchment panels,
+Mediterranean tile motifs, tactile controls, and a matching illustrated app icon
+carry the style through menus, quizzes, onboarding, and results.
+
+Sound effects are original real-time compositions rendered with layered musical
+voices, shaped envelopes, harmonics, pitch movement, noise, and a six-voice pool.
+Pickups, stars, checkpoints, answers, damage, jumps, and level completion each
+have a distinct sonic signature and can overlap naturally. They use the active
+device audio format and require no licensed audio files.

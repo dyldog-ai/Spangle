@@ -2,6 +2,7 @@ import SwiftUI
 
 /// Main menu with campaign, challenge modes, imported lists, and learning tools.
 struct MenuView: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     let themes: [Theme]
     let isLocked: (Int) -> Bool
     let bestStarRating: (Int) -> Int
@@ -20,13 +21,7 @@ struct MenuView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color(red: 0.53, green: 0.81, blue: 0.98),
-                         Color(red: 0.29, green: 0.6, blue: 0.32)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            StorybookBackdrop()
 
             VStack(spacing: 10) {
                 header
@@ -51,28 +46,43 @@ struct MenuView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .center) {
+        ZStack {
             HStack(spacing: 8) {
                 Button(action: onProgress) {
-                    Label("Progress", systemImage: "chart.bar.fill")
+                    if horizontalSizeClass == .compact {
+                        Image(systemName: "chart.bar.fill")
+                            .frame(width: 24)
+                    } else {
+                        Label("Progress", systemImage: "chart.bar.fill")
+                    }
                 }
+                .accessibilityLabel("Progress")
                 Button(action: onSettings) {
-                    Label("Settings", systemImage: "gearshape.fill")
+                    if horizontalSizeClass == .compact {
+                        Image(systemName: "gearshape.fill")
+                            .frame(width: 24)
+                    } else {
+                        Label("Settings", systemImage: "gearshape.fill")
+                    }
                 }
+                .accessibilityLabel("Settings")
+                Spacer()
             }
-            .buttonStyle(.bordered)
-            .tint(.white)
+            .buttonStyle(StorybookSecondaryButtonStyle())
 
-            Spacer()
-            VStack(spacing: 0) {
-                Text("Spangle")
-                    .font(.system(size: 42, weight: .heavy, design: .rounded))
-                Text("Learn Spanish · one jump at a time")
-                    .font(.subheadline)
+            VStack(spacing: -3) {
+                Text("SPANGLE")
+                    .font(.system(size: 39, weight: .black, design: .rounded))
+                    .tracking(2)
+                    .foregroundStyle(Color.storybookPaper)
+                    .shadow(color: .storybookInk.opacity(0.75), radius: 0, y: 3)
+                Text("APRENDE · SALTA · BRILLA")
+                    .font(.caption2.weight(.black))
+                    .tracking(2.1)
+                    .foregroundStyle(Color.storybookCream)
             }
-            .foregroundStyle(.white)
-            Spacer()
-            Color.clear.frame(width: 190, height: 1)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Spangle. Learn Spanish, one jump at a time.")
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
@@ -82,7 +92,8 @@ struct MenuView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Play")
                 .font(.title2.bold())
-                .foregroundStyle(.white)
+                .foregroundStyle(Color.storybookPaper)
+                .shadow(color: .storybookInk.opacity(0.45), radius: 0, y: 2)
             HStack(spacing: 12) {
                 challengeButton(
                     title: "Daily Challenge",
@@ -121,11 +132,18 @@ struct MenuView: View {
                 }
                 Spacer(minLength: 0)
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(Color.storybookInk)
             .padding(13)
-            .frame(maxWidth: .infinity, minHeight: 68)
-            .background(.black.opacity(0.24), in: RoundedRectangle(cornerRadius: 16))
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(.white.opacity(0.3)))
+            .frame(maxWidth: .infinity, minHeight: 70)
+            .background {
+                RoundedRectangle(cornerRadius: 18)
+                    .fill(Color.storybookPaper.opacity(0.94))
+                    .shadow(color: .storybookInk.opacity(0.28), radius: 0, y: 4)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(Color.storybookInk.opacity(0.42), lineWidth: 2)
+            }
         }
         .buttonStyle(.plain)
     }
@@ -134,7 +152,8 @@ struct MenuView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.title2.bold())
-                .foregroundStyle(.white)
+                .foregroundStyle(Color.storybookPaper)
+                .shadow(color: .storybookInk.opacity(0.45), radius: 0, y: 2)
             LazyVGrid(columns: columns, alignment: .center, spacing: 14) {
                 ForEach(items, id: \.element.id) { index, theme in
                     let locked = isLocked(index)
@@ -195,10 +214,19 @@ private struct LevelTile: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(8)
-        .background(gradient, in: RoundedRectangle(cornerRadius: 18))
-        .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(.white.opacity(0.35)))
-        .shadow(color: .black.opacity(0.2), radius: 4, y: 2)
+        .padding(10)
+        .background {
+            RoundedRectangle(cornerRadius: 20)
+                .fill(gradient)
+                .shadow(color: .storybookInk.opacity(0.3), radius: 0, y: 5)
+                .shadow(color: .black.opacity(0.16), radius: 8, y: 6)
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: 20)
+                .strokeBorder(Color.storybookPaper.opacity(0.88), lineWidth: 4)
+                .padding(2)
+        }
+        .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(Color.storybookInk.opacity(0.48), lineWidth: 2))
         .saturation(locked ? 0 : 1)
         .opacity(locked ? 0.55 : 1)
         .accessibilityElement(children: .combine)

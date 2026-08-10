@@ -41,7 +41,10 @@ final class GameScene: SKScene {
     private var farLayer = SKNode()
     private var nearLayer = SKNode()
     private let worldNode = SKNode()
+    private let playerShadow = SKShapeNode(ellipseOf: CGSize(width: 52, height: 13))
     private let player = PlayerNode(size: 46)
+    private let vignette = SKSpriteNode()
+    private var dustAccumulator: TimeInterval = 0
     private var coins: [CoinNode] = []
     private var gates: [GateNode] = []
     private var springs: [SpringNode] = []
@@ -150,8 +153,17 @@ final class GameScene: SKScene {
         worldNode.zPosition = 0
         addChild(worldNode)
 
+        playerShadow.fillColor = SKColor(red: 0.18, green: 0.1, blue: 0.06, alpha: 0.24)
+        playerShadow.strokeColor = .clear
+        playerShadow.zPosition = 5
+        addChild(playerShadow)
+
         player.zPosition = 10
         addChild(player)
+
+        vignette.zPosition = 90
+        vignette.isUserInteractionEnabled = false
+        addChild(vignette)
 
         rebuild()
     }
@@ -166,12 +178,16 @@ final class GameScene: SKScene {
         sky.position = CGPoint(x: size.width / 2, y: size.height / 2)
         celestialWrap.position = CGPoint(x: size.width * 0.78, y: size.height * 0.8)
         player.position = CGPoint(x: playerScreenX, y: groundTopY + playerSize / 2 + playerY)
+        playerShadow.position = CGPoint(x: playerScreenX, y: groundTopY + 2)
+        vignette.texture = GradientTexture.vignette(size: CGSize(width: 512, height: 288))
+        vignette.size = size
+        vignette.position = CGPoint(x: size.width / 2, y: size.height / 2)
     }
 
     // MARK: Background
 
     private func buildBackground() {
-        sky.texture = GradientTexture.vertical(size: CGSize(width: 4, height: 512),
+        sky.texture = GradientTexture.vertical(size: CGSize(width: 256, height: 512),
                                                top: skin.skyTop, bottom: skin.skyBottom)
         celestialWrap.removeAllChildren()
         celestialWrap.addChild(Scenery.celestial(skin: skin))
@@ -240,25 +256,52 @@ final class GameScene: SKScene {
         layoutWorldHeights()
     }
 
-    /// A ground segment: soil body with a grass strip and a darker lip on top.
+    /// A tactile cut-paper ground segment with a painted turf edge.
     private func makeGround(_ seg: GroundSegment) -> SKNode {
-        let w = seg.endX - seg.startX
+        let width = seg.endX - seg.startX
         let node = SKNode()
+        let seed = UInt64(max(0, Int(seg.startX))) &+ levelSeed
 
-        let soil = SKSpriteNode(color: skin.soil, size: CGSize(width: w, height: 2000))
+        let soil = SKSpriteNode(texture: GradientTexture.paper(
+            size: CGSize(width: 128, height: 128), color: skin.soil, seed: seed
+        ))
+        soil.size = CGSize(width: width, height: 2_000)
         soil.anchorPoint = CGPoint(x: 0, y: 1)
-        soil.position = .zero
         node.addChild(soil)
 
-        let grass = SKSpriteNode(color: skin.grass, size: CGSize(width: w, height: 22))
+        let earthShade = SKSpriteNode(color: skin.soil.darker(0.15),
+                                      size: CGSize(width: width, height: 10))
+        earthShade.anchorPoint = CGPoint(x: 0, y: 1)
+        earthShade.position.y = -20
+        earthShade.alpha = 0.28
+        node.addChild(earthShade)
+
+        let grass = SKSpriteNode(texture: GradientTexture.paper(
+            size: CGSize(width: 96, height: 24), color: skin.grass, seed: seed ^ 0xABCDEF
+        ))
+        grass.size = CGSize(width: width, height: 24)
         grass.anchorPoint = CGPoint(x: 0, y: 1)
-        grass.position = .zero
         node.addChild(grass)
 
-        let lip = SKSpriteNode(color: skin.grass.lighter(0.25), size: CGSize(width: w, height: 6))
-        lip.anchorPoint = CGPoint(x: 0, y: 1)
-        lip.position = .zero
-        node.addChild(lip)
+        let highlight = SKSpriteNode(color: skin.grass.lighter(0.34),
+                                     size: CGSize(width: width, height: 4))
+        highlight.anchorPoint = CGPoint(x: 0, y: 1)
+        highlight.position.y = 1
+        node.addChild(highlight)
+
+        var bladeX: CGFloat = 10
+        while bladeX < width - 4 {
+            let blade = SKShapeNode()
+            let path = CGMutablePath()
+            path.move(to: CGPoint(x: bladeX, y: 0))
+            path.addLine(to: CGPoint(x: bladeX + (Int(bladeX) % 2 == 0 ? 3 : -3), y: 8))
+            blade.path = path
+            blade.strokeColor = skin.grass.lighter(0.25).withAlphaComponent(0.72)
+            blade.lineWidth = 1.5
+            blade.lineCap = .round
+            node.addChild(blade)
+            bladeX += 34
+        }
 
         node.position = CGPoint(x: seg.startX, y: 0)
         node.name = "ground"
@@ -267,19 +310,33 @@ final class GameScene: SKScene {
 
     private func makeSpike(at x: CGFloat) -> SKNode {
         let node = SKNode()
-        let base = skin.accent.darker(0.05)
-        for dx in [-14.0, 14.0] as [CGFloat] {
-            let s = SKShapeNode()
-            let p = CGMutablePath()
-            p.move(to: CGPoint(x: dx - 16, y: 0))
-            p.addLine(to: CGPoint(x: dx, y: 46))
-            p.addLine(to: CGPoint(x: dx + 16, y: 0))
-            p.closeSubpath()
-            s.path = p
-            s.fillColor = SKColor(red: 0.86, green: 0.24, blue: 0.22, alpha: 1)
-            s.strokeColor = base.darker(0.2)
-            s.lineWidth = 2
-            node.addChild(s)
+        let ink = SKColor(red: 0.29, green: 0.12, blue: 0.09, alpha: 1)
+        let shadow = SKShapeNode(ellipseOf: CGSize(width: 66, height: 11))
+        shadow.fillColor = ink.withAlphaComponent(0.22)
+        shadow.strokeColor = .clear
+        node.addChild(shadow)
+        for (index, dx) in [-20.0, 0, 20.0].enumerated() {
+            let thorn = SKShapeNode()
+            let path = CGMutablePath()
+            let height: CGFloat = index == 1 ? 50 : 39
+            path.move(to: CGPoint(x: dx - 13, y: 1))
+            path.addQuadCurve(to: CGPoint(x: dx, y: height),
+                              control: CGPoint(x: dx - 4, y: height * 0.67))
+            path.addQuadCurve(to: CGPoint(x: dx + 13, y: 1),
+                              control: CGPoint(x: dx + 5, y: height * 0.64))
+            path.closeSubpath()
+            thorn.path = path
+            thorn.fillColor = SKColor(red: 0.82, green: 0.2, blue: 0.15, alpha: 1)
+            thorn.strokeColor = ink
+            thorn.lineWidth = 2.2
+            thorn.lineJoin = .round
+            node.addChild(thorn)
+            let glint = SKShapeNode(rectOf: CGSize(width: 2, height: height * 0.4), cornerRadius: 1)
+            glint.fillColor = .white.withAlphaComponent(0.2)
+            glint.strokeColor = .clear
+            glint.position = CGPoint(x: dx - 4, y: height * 0.42)
+            glint.zRotation = -0.13
+            node.addChild(glint)
         }
         node.name = "spike"
         node.position = CGPoint(x: x, y: 2)
@@ -288,50 +345,95 @@ final class GameScene: SKScene {
 
     private func makeCoin(at x: CGFloat) -> SKNode {
         let node = SKNode()
-        let ring = SKShapeNode(circleOfRadius: 21)
-        ring.fillColor = skin.accent
-        ring.strokeColor = skin.accent.darker(0.2)
-        ring.lineWidth = 3
+        let ink = SKColor(red: 0.34, green: 0.18, blue: 0.05, alpha: 1)
+        let shadow = SKShapeNode(circleOfRadius: 23)
+        shadow.fillColor = ink.withAlphaComponent(0.2)
+        shadow.strokeColor = .clear
+        shadow.position = CGPoint(x: 2.5, y: -3)
+        node.addChild(shadow)
+
+        let ring = SKShapeNode(circleOfRadius: 22)
+        ring.fillColor = SKColor(red: 0.95, green: 0.58, blue: 0.08, alpha: 1)
+        ring.strokeColor = ink
+        ring.lineWidth = 2.4
         node.addChild(ring)
 
-        let face = SKShapeNode(circleOfRadius: 14)
-        face.fillColor = SKColor(red: 1, green: 0.86, blue: 0.3, alpha: 1)
-        face.strokeColor = .clear
+        let face = SKShapeNode(circleOfRadius: 16)
+        face.fillColor = SKColor(red: 1, green: 0.84, blue: 0.27, alpha: 1)
+        face.strokeColor = .white.withAlphaComponent(0.48)
+        face.lineWidth = 1.5
         node.addChild(face)
 
-        let shine = SKShapeNode(ellipseOf: CGSize(width: 7, height: 10))
-        shine.fillColor = .white
+        let book = SKShapeNode()
+        let bookPath = CGMutablePath()
+        bookPath.move(to: CGPoint(x: -10, y: 7))
+        bookPath.addQuadCurve(to: CGPoint(x: 0, y: 4), control: CGPoint(x: -5, y: 8))
+        bookPath.addQuadCurve(to: CGPoint(x: 10, y: 7), control: CGPoint(x: 5, y: 8))
+        bookPath.addLine(to: CGPoint(x: 10, y: -7))
+        bookPath.addQuadCurve(to: CGPoint(x: 0, y: -5), control: CGPoint(x: 5, y: -6))
+        bookPath.addQuadCurve(to: CGPoint(x: -10, y: -7), control: CGPoint(x: -5, y: -6))
+        bookPath.closeSubpath()
+        book.path = bookPath
+        book.fillColor = SKColor(red: 1, green: 0.98, blue: 0.86, alpha: 1)
+        book.strokeColor = ink
+        book.lineWidth = 1.4
+        node.addChild(book)
+        let spine = SKShapeNode(rectOf: CGSize(width: 1.5, height: 12))
+        spine.fillColor = ink.withAlphaComponent(0.6)
+        spine.strokeColor = .clear
+        node.addChild(spine)
+
+        let shine = SKShapeNode(ellipseOf: CGSize(width: 5, height: 9))
+        shine.fillColor = .white.withAlphaComponent(0.66)
         shine.strokeColor = .clear
-        shine.alpha = 0.85
-        shine.position = CGPoint(x: -5, y: 5)
+        shine.position = CGPoint(x: -12, y: 10)
+        shine.zRotation = -0.5
         node.addChild(shine)
 
         node.name = "coin"
         node.position = CGPoint(x: x, y: 0)
         node.run(.repeatForever(.sequence([
-            .scale(to: 1.15, duration: 0.5), .scale(to: 1.0, duration: 0.5),
+            .group([.scaleX(to: 0.18, duration: 0.34), .moveBy(x: 0, y: 3, duration: 0.34)]),
+            .group([.scaleX(to: 1, duration: 0.34), .moveBy(x: 0, y: -3, duration: 0.34)]),
+            .wait(forDuration: 0.2),
         ])))
         return node
     }
 
     private func makeSpring(at x: CGFloat) -> SKNode {
         let node = SKNode()
+        let ink = SKColor(red: 0.26, green: 0.12, blue: 0.07, alpha: 1)
+        let shadow = SKShapeNode(ellipseOf: CGSize(width: 82, height: 12))
+        shadow.fillColor = ink.withAlphaComponent(0.22)
+        shadow.strokeColor = .clear
+        shadow.position.y = 2
+        node.addChild(shadow)
 
-        let base = SKShapeNode(rectOf: CGSize(width: 76, height: 16), cornerRadius: 7)
-        base.fillColor = skin.accent.darker(0.18)
-        base.strokeColor = .white
-        base.lineWidth = 2
-        base.position.y = 8
+        let base = SKShapeNode(rectOf: CGSize(width: 78, height: 18), cornerRadius: 9)
+        base.fillColor = skin.accent.darker(0.12)
+        base.strokeColor = ink
+        base.lineWidth = 2.3
+        base.position.y = 10
         node.addChild(base)
+        let top = SKShapeNode(rectOf: CGSize(width: 66, height: 8), cornerRadius: 4)
+        top.fillColor = skin.celestial
+        top.strokeColor = .white.withAlphaComponent(0.55)
+        top.lineWidth = 1.5
+        top.position.y = 20
+        node.addChild(top)
 
-        for offset in [-22.0, 0, 22.0] as [CGFloat] {
-            let arrow = SKLabelNode(text: "▲")
-            arrow.fontName = "AvenirNext-Bold"
-            arrow.fontSize = 19
-            arrow.fontColor = .white
-            arrow.verticalAlignmentMode = .center
-            arrow.position = CGPoint(x: offset, y: 18)
-            node.addChild(arrow)
+        for offset in [-21.0, 0, 21.0] as [CGFloat] {
+            let chevron = SKShapeNode()
+            let path = CGMutablePath()
+            path.move(to: CGPoint(x: offset - 5, y: 18))
+            path.addLine(to: CGPoint(x: offset, y: 24))
+            path.addLine(to: CGPoint(x: offset + 5, y: 18))
+            chevron.path = path
+            chevron.strokeColor = ink.withAlphaComponent(0.72)
+            chevron.lineWidth = 2
+            chevron.lineCap = .round
+            chevron.lineJoin = .round
+            node.addChild(chevron)
         }
 
         node.name = "spring"
@@ -366,19 +468,40 @@ final class GameScene: SKScene {
 
     private func makeEnemy(at x: CGFloat) -> SKNode {
         let node = SKNode()
-        let body = SKShapeNode(ellipseOf: CGSize(width: 54, height: 42))
-        body.fillColor = SKColor(red: 0.55, green: 0.22, blue: 0.68, alpha: 1)
-        body.strokeColor = .white
-        body.lineWidth = 2
-        body.position.y = 24
+        let ink = SKColor(red: 0.2, green: 0.09, blue: 0.2, alpha: 1)
+        let shadow = SKShapeNode(ellipseOf: CGSize(width: 55, height: 11))
+        shadow.fillColor = ink.withAlphaComponent(0.24)
+        shadow.strokeColor = .clear
+        shadow.position.y = 3
+        node.addChild(shadow)
+        let body = SKShapeNode(ellipseOf: CGSize(width: 58, height: 45))
+        body.fillColor = SKColor(red: 0.49, green: 0.2, blue: 0.58, alpha: 1)
+        body.strokeColor = ink
+        body.lineWidth = 2.5
+        body.position.y = 25
         node.addChild(body)
-        for eyeX in [-11.0, 11.0] as [CGFloat] {
-            let eye = SKShapeNode(circleOfRadius: 5)
-            eye.fillColor = .white
+        let mask = SKShapeNode(ellipseOf: CGSize(width: 43, height: 19))
+        mask.fillColor = SKColor(red: 0.17, green: 0.11, blue: 0.22, alpha: 1)
+        mask.strokeColor = .clear
+        mask.position.y = 30
+        node.addChild(mask)
+        for eyeX in [-10.0, 10.0] as [CGFloat] {
+            let eye = SKShapeNode(ellipseOf: CGSize(width: 8, height: 6))
+            eye.fillColor = SKColor(red: 1, green: 0.83, blue: 0.24, alpha: 1)
             eye.strokeColor = .clear
-            eye.position = CGPoint(x: eyeX, y: 30)
+            eye.position = CGPoint(x: eyeX, y: 31)
             node.addChild(eye)
         }
+        for footX in [-17.0, 17.0] as [CGFloat] {
+            let foot = SKShapeNode(ellipseOf: CGSize(width: 19, height: 8))
+            foot.fillColor = ink
+            foot.strokeColor = .clear
+            foot.position = CGPoint(x: footX, y: 6)
+            node.addChild(foot)
+        }
+        body.run(.repeatForever(.sequence([
+            .moveBy(x: 0, y: 3, duration: 0.22), .moveBy(x: 0, y: -3, duration: 0.22),
+        ])))
         node.name = "enemy"
         node.position = CGPoint(x: x, y: 0)
         return node
@@ -386,19 +509,39 @@ final class GameScene: SKScene {
 
     private func makeShield(at x: CGFloat) -> SKNode {
         let node = SKNode()
-        let orb = SKShapeNode(circleOfRadius: 25)
-        orb.fillColor = SKColor(red: 0.2, green: 0.8, blue: 1, alpha: 0.65)
-        orb.strokeColor = .white
-        orb.lineWidth = 3
-        let label = SKLabelNode(text: "◆")
-        label.fontName = "AvenirNext-Bold"
-        label.fontSize = 24
-        label.fontColor = .white
-        label.verticalAlignmentMode = .center
+        for (radius, alpha) in [(31.0, 0.1), (27.0, 0.18)] {
+            let glow = SKShapeNode(circleOfRadius: radius)
+            glow.fillColor = SKColor(red: 0.22, green: 0.82, blue: 0.96, alpha: alpha)
+            glow.strokeColor = .clear
+            node.addChild(glow)
+        }
+        let orb = SKShapeNode(circleOfRadius: 23)
+        orb.fillColor = SKColor(red: 0.18, green: 0.72, blue: 0.88, alpha: 0.72)
+        orb.strokeColor = .white.withAlphaComponent(0.9)
+        orb.lineWidth = 2.5
         node.addChild(orb)
-        node.addChild(label)
-        node.run(.repeatForever(.sequence([
-            .scale(to: 1.15, duration: 0.55), .scale(to: 1, duration: 0.55),
+        let crest = SKShapeNode()
+        let path = CGMutablePath()
+        path.move(to: CGPoint(x: 0, y: 14))
+        path.addLine(to: CGPoint(x: 11, y: 8))
+        path.addLine(to: CGPoint(x: 8, y: -8))
+        path.addQuadCurve(to: CGPoint(x: 0, y: -15), control: CGPoint(x: 5, y: -13))
+        path.addQuadCurve(to: CGPoint(x: -8, y: -8), control: CGPoint(x: -5, y: -13))
+        path.addLine(to: CGPoint(x: -11, y: 8))
+        path.closeSubpath()
+        crest.path = path
+        crest.fillColor = .white.withAlphaComponent(0.84)
+        crest.strokeColor = .clear
+        node.addChild(crest)
+        let glint = SKShapeNode(circleOfRadius: 3)
+        glint.fillColor = .white
+        glint.strokeColor = .clear
+        glint.position = CGPoint(x: -10, y: 11)
+        node.addChild(glint)
+        node.run(.repeatForever(.group([
+            .sequence([.scale(to: 1.1, duration: 0.52), .scale(to: 1, duration: 0.52)]),
+            .sequence([.rotate(toAngle: 0.08, duration: 0.52),
+                       .rotate(toAngle: -0.08, duration: 0.52)]),
         ])))
         node.name = "shield"
         node.position = CGPoint(x: x, y: 0)
@@ -407,19 +550,34 @@ final class GameScene: SKScene {
 
     private func makeCheckpoint(at x: CGFloat) -> SKNode {
         let node = SKNode()
-        let pole = SKSpriteNode(color: .white, size: CGSize(width: 6, height: 150))
-        pole.anchorPoint = CGPoint(x: 0.5, y: 0)
+        let ink = SKColor(red: 0.29, green: 0.14, blue: 0.08, alpha: 1)
+        let base = SKShapeNode(ellipseOf: CGSize(width: 34, height: 11))
+        base.fillColor = ink.withAlphaComponent(0.25)
+        base.strokeColor = .clear
+        node.addChild(base)
+        let pole = SKShapeNode(rectOf: CGSize(width: 7, height: 150), cornerRadius: 3.5)
+        pole.fillColor = SKColor(red: 0.96, green: 0.82, blue: 0.56, alpha: 1)
+        pole.strokeColor = ink
+        pole.lineWidth = 2
+        pole.position.y = 75
         node.addChild(pole)
-        let flag = SKLabelNode(text: "⚑")
-        flag.fontSize = 48
-        flag.verticalAlignmentMode = .center
-        flag.position = CGPoint(x: 19, y: 133)
+        let flag = SKShapeNode()
+        let path = CGMutablePath()
+        path.move(to: CGPoint(x: 4, y: 145))
+        path.addQuadCurve(to: CGPoint(x: 64, y: 134), control: CGPoint(x: 34, y: 158))
+        path.addLine(to: CGPoint(x: 52, y: 104))
+        path.addQuadCurve(to: CGPoint(x: 4, y: 112), control: CGPoint(x: 30, y: 98))
+        path.closeSubpath()
+        flag.path = path
+        flag.fillColor = skin.accent
+        flag.strokeColor = ink
+        flag.lineWidth = 2
         node.addChild(flag)
-        let label = SKLabelNode(text: "CHECKPOINT")
+        let label = SKLabelNode(text: "PUNTO DE CONTROL")
         label.fontName = "AvenirNext-Bold"
-        label.fontSize = 13
+        label.fontSize = 11
         label.fontColor = .white
-        label.position = CGPoint(x: 0, y: 165)
+        label.position = CGPoint(x: 23, y: 164)
         node.addChild(label)
         node.name = "checkpoint"
         node.position = CGPoint(x: x, y: 0)
@@ -428,26 +586,51 @@ final class GameScene: SKScene {
 
     private func makeGate(at x: CGFloat) -> SKNode {
         let node = SKNode()
-        let post = SKShapeNode(rectOf: CGSize(width: 12, height: 230), cornerRadius: 6)
-        post.fillColor = SKColor(white: 1, alpha: 0.9)
-        post.strokeColor = skin.accent
-        post.lineWidth = 3
-        post.position = CGPoint(x: 0, y: 115)
+        let ink = SKColor(red: 0.28, green: 0.13, blue: 0.08, alpha: 1)
+        let foot = SKShapeNode(ellipseOf: CGSize(width: 36, height: 12))
+        foot.fillColor = ink.withAlphaComponent(0.22)
+        foot.strokeColor = .clear
+        node.addChild(foot)
+        let post = SKShapeNode(rectOf: CGSize(width: 15, height: 226), cornerRadius: 7)
+        post.fillColor = SKColor(red: 0.96, green: 0.83, blue: 0.58, alpha: 1)
+        post.strokeColor = ink
+        post.lineWidth = 2.5
+        post.position = CGPoint(x: 0, y: 113)
         node.addChild(post)
 
-        let sign = SKShapeNode(circleOfRadius: 30)
+        for y in stride(from: CGFloat(28), through: 205, by: 28) {
+            let tile = SKShapeNode(rectOf: CGSize(width: 8, height: 8), cornerRadius: 2)
+            tile.fillColor = Int(y) / 28 % 2 == 0 ? skin.accent : skin.celestial
+            tile.strokeColor = .clear
+            tile.zRotation = .pi / 4
+            tile.position.y = y
+            node.addChild(tile)
+        }
+
+        let signShadow = SKShapeNode(circleOfRadius: 34)
+        signShadow.fillColor = ink.withAlphaComponent(0.22)
+        signShadow.strokeColor = .clear
+        signShadow.position = CGPoint(x: 2, y: 245)
+        node.addChild(signShadow)
+        let sign = SKShapeNode(circleOfRadius: 31)
         sign.fillColor = skin.accent
-        sign.strokeColor = .white
-        sign.lineWidth = 3
+        sign.strokeColor = ink
+        sign.lineWidth = 2.8
         sign.position = CGPoint(x: 0, y: 250)
-        let q = SKLabelNode(text: "?")
-        q.fontName = "AvenirNext-Bold"
-        q.fontSize = 34
-        q.fontColor = .white
-        q.verticalAlignmentMode = .center
-        sign.addChild(q)
+        let inner = SKShapeNode(circleOfRadius: 25)
+        inner.fillColor = skin.accent.lighter(0.08)
+        inner.strokeColor = .white.withAlphaComponent(0.55)
+        inner.lineWidth = 1.5
+        sign.addChild(inner)
+        let questionMark = SKLabelNode(text: "?")
+        questionMark.fontName = "AvenirNext-Heavy"
+        questionMark.fontSize = 35
+        questionMark.fontColor = .white
+        questionMark.verticalAlignmentMode = .center
+        questionMark.position.y = -1
+        sign.addChild(questionMark)
         sign.run(.repeatForever(.sequence([
-            .rotate(byAngle: 0.12, duration: 0.6), .rotate(byAngle: -0.12, duration: 0.6),
+            .rotate(toAngle: 0.08, duration: 0.55), .rotate(toAngle: -0.08, duration: 0.55),
         ])))
         node.addChild(sign)
 
@@ -458,21 +641,44 @@ final class GameScene: SKScene {
 
     private func makeFinish(at x: CGFloat) -> SKNode {
         let node = SKNode()
-        let pole = SKSpriteNode(color: SKColor(white: 0.95, alpha: 1),
-                                size: CGSize(width: 8, height: 300))
-        pole.anchorPoint = CGPoint(x: 0.5, y: 0)
+        let ink = SKColor(red: 0.27, green: 0.13, blue: 0.07, alpha: 1)
+        let base = SKShapeNode(ellipseOf: CGSize(width: 46, height: 13))
+        base.fillColor = ink.withAlphaComponent(0.24)
+        base.strokeColor = .clear
+        node.addChild(base)
+        let pole = SKShapeNode(rectOf: CGSize(width: 9, height: 300), cornerRadius: 4)
+        pole.fillColor = SKColor(red: 0.97, green: 0.84, blue: 0.58, alpha: 1)
+        pole.strokeColor = ink
+        pole.lineWidth = 2.2
+        pole.position.y = 150
         node.addChild(pole)
 
         let flag = SKShapeNode()
-        let p = CGMutablePath()
-        p.move(to: CGPoint(x: 4, y: 300))
-        p.addLine(to: CGPoint(x: 90, y: 268))
-        p.addLine(to: CGPoint(x: 4, y: 236))
-        p.closeSubpath()
-        flag.path = p
+        let path = CGMutablePath()
+        path.move(to: CGPoint(x: 5, y: 298))
+        path.addQuadCurve(to: CGPoint(x: 104, y: 274), control: CGPoint(x: 54, y: 315))
+        path.addLine(to: CGPoint(x: 86, y: 230))
+        path.addQuadCurve(to: CGPoint(x: 5, y: 244), control: CGPoint(x: 47, y: 220))
+        path.closeSubpath()
+        flag.path = path
         flag.fillColor = skin.accent
-        flag.strokeColor = .clear
+        flag.strokeColor = ink
+        flag.lineWidth = 2.5
         node.addChild(flag)
+        let sun = SKShapeNode(circleOfRadius: 12)
+        sun.fillColor = skin.celestial
+        sun.strokeColor = .white.withAlphaComponent(0.7)
+        sun.lineWidth = 1.5
+        sun.position = CGPoint(x: 50, y: 272)
+        node.addChild(sun)
+        for angle in stride(from: CGFloat.zero, to: .pi * 2, by: .pi / 4) {
+            let ray = SKShapeNode(rectOf: CGSize(width: 2, height: 9), cornerRadius: 1)
+            ray.fillColor = skin.celestial
+            ray.strokeColor = .clear
+            ray.position = CGPoint(x: 50 + cos(angle) * 19, y: 272 + sin(angle) * 19)
+            ray.zRotation = angle - .pi / 2
+            node.addChild(ray)
+        }
 
         node.name = "finish"
         node.position = CGPoint(x: x, y: 0)
@@ -555,6 +761,11 @@ final class GameScene: SKScene {
         }
 
         render()
+        dustAccumulator += dt
+        if onGround, dustAccumulator >= 0.11, game?.settings.reducedMotion != true {
+            dustAccumulator = 0
+            spawnDust()
+        }
         game?.updateRun(
             distanceMeters: Int(scroll / 100),
             progress: min(1, Double(worldX / level.finishX))
@@ -567,6 +778,10 @@ final class GameScene: SKScene {
         nearLayer.position = CGPoint(x: -scroll * Scenery.nearFactor, y: groundTopY)
         player.position = CGPoint(x: playerScreenX, y: groundTopY + playerSize / 2 + playerY)
         player.zRotation = onGround ? 0 : max(-0.5, -vy / 4000)
+        let shadowScale = max(0.42, 1 - max(0, playerY) / 380)
+        playerShadow.position = CGPoint(x: playerScreenX, y: groundTopY + 2)
+        playerShadow.xScale = shadowScale
+        playerShadow.alpha = max(0.08, 0.3 - max(0, playerY) / 1_200)
         for enemy in enemies {
             enemy.node.position.x = enemy.x + sin(runTime * 3) * 42
         }
@@ -577,6 +792,11 @@ final class GameScene: SKScene {
             guard abs(shield.x - worldX) < 38, abs(playerY - shield.y) < 78 else { continue }
             shield.collected = true
             shielded = true
+            spawnBurst(
+                at: CGPoint(x: shield.x - scroll, y: groundTopY + shield.y),
+                colors: [.white, .cyan, skin.celestial],
+                count: 13
+            )
             shield.node.run(.sequence([
                 .group([.scale(to: 2, duration: 0.2), .fadeOut(withDuration: 0.2)]),
                 .removeFromParent(),
@@ -639,6 +859,11 @@ final class GameScene: SKScene {
         for coin in coins where !coin.collected {
             if abs(coin.x - worldX) < 36 && abs(playerY - coin.y) < 86 {
                 coin.collected = true
+                spawnBurst(
+                    at: CGPoint(x: coin.x - scroll, y: groundTopY + coin.y),
+                    colors: [skin.celestial, skin.accent, .white],
+                    count: 10
+                )
                 coin.node.run(.sequence([.group([.scale(to: 1.8, duration: 0.2),
                                                   .fadeOut(withDuration: 0.2)]), .removeFromParent()]))
                 quizWordQueue.collect(coin.word)
@@ -651,6 +876,11 @@ final class GameScene: SKScene {
         for star in challengeStars where !star.collected {
             if abs(star.x - worldX) < 38 && abs(playerY - star.y) < 68 {
                 star.collected = true
+                spawnBurst(
+                    at: CGPoint(x: star.x - scroll, y: groundTopY + star.y),
+                    colors: [skin.celestial, .white, skin.accent],
+                    count: 18
+                )
                 star.node.run(.sequence([
                     .group([
                         .scale(to: 2.2, duration: 0.24),
@@ -667,7 +897,12 @@ final class GameScene: SKScene {
     private func checkCheckpoints(worldX: CGFloat) {
         for checkpoint in checkpoints where !checkpoint.activated && worldX >= checkpoint.x {
             checkpoint.activated = true
-            checkpoint.node.alpha = 0.45
+            checkpoint.node.alpha = 0.6
+            spawnBurst(
+                at: CGPoint(x: checkpoint.x - scroll, y: groundTopY + 128),
+                colors: [skin.accent, skin.celestial, .white],
+                count: 16
+            )
             checkpoint.node.run(.sequence([
                 .scale(to: 1.3, duration: 0.15), .scale(to: 1, duration: 0.15),
             ]))
@@ -706,9 +941,85 @@ final class GameScene: SKScene {
     private func die(reason: String) {
         guard active else { return }
         active = false
+        spawnBurst(
+            at: player.position,
+            colors: [skin.accent, .white, SKColor(red: 0.9, green: 0.24, blue: 0.17, alpha: 1)],
+            count: 14
+        )
         player.flashDead()
         player.run(.sequence([.scale(to: 1.4, duration: 0.1), .scale(to: 0, duration: 0.2)]))
         game?.died(reason: reason)
+    }
+
+    // MARK: - Storybook effects
+
+    private func spawnDust() {
+        let dust = SKShapeNode(circleOfRadius: CGFloat.random(in: 2.5...5))
+        dust.fillColor = skin.soil.lighter(0.32).withAlphaComponent(0.3)
+        dust.strokeColor = .clear
+        dust.position = CGPoint(x: playerScreenX - 20, y: groundTopY + 5)
+        dust.zPosition = 7
+        addChild(dust)
+        dust.run(.sequence([
+            .group([
+                .moveBy(x: -24, y: CGFloat.random(in: 5...14), duration: 0.42),
+                .scale(to: 1.8, duration: 0.42),
+                .fadeOut(withDuration: 0.42),
+            ]),
+            .removeFromParent(),
+        ]))
+    }
+
+    private func spawnJumpDust() {
+        for index in 0..<5 {
+            let puff = SKShapeNode(circleOfRadius: CGFloat.random(in: 3...6))
+            puff.fillColor = skin.soil.lighter(0.38).withAlphaComponent(0.38)
+            puff.strokeColor = .clear
+            puff.position = CGPoint(x: playerScreenX + CGFloat(index - 2) * 5,
+                                    y: groundTopY + 5)
+            puff.zPosition = 7
+            addChild(puff)
+            puff.run(.sequence([
+                .group([
+                    .moveBy(x: CGFloat(index - 2) * 8, y: CGFloat.random(in: 5...13), duration: 0.34),
+                    .scale(to: 1.6, duration: 0.34),
+                    .fadeOut(withDuration: 0.34),
+                ]),
+                .removeFromParent(),
+            ]))
+        }
+    }
+
+    private func spawnBurst(at position: CGPoint, colors: [SKColor], count: Int) {
+        guard game?.settings.reducedMotion != true else { return }
+        for index in 0..<count {
+            let particle: SKShapeNode
+            if index.isMultiple(of: 3) {
+                particle = SKShapeNode(rectOf: CGSize(width: 5, height: 5), cornerRadius: 1)
+                particle.zRotation = .pi / 4
+            } else {
+                particle = SKShapeNode(circleOfRadius: CGFloat.random(in: 2...4))
+            }
+            particle.fillColor = colors[index % colors.count]
+            particle.strokeColor = .clear
+            particle.position = position
+            particle.zPosition = 30
+            addChild(particle)
+
+            let angle = CGFloat(index) / CGFloat(max(1, count)) * .pi * 2
+                + CGFloat.random(in: -0.18...0.18)
+            let distance = CGFloat.random(in: 30...72)
+            particle.run(.sequence([
+                .group([
+                    .moveBy(x: cos(angle) * distance,
+                            y: sin(angle) * distance + 10,
+                            duration: 0.42),
+                    .rotate(byAngle: CGFloat.random(in: -2...2), duration: 0.42),
+                    .sequence([.wait(forDuration: 0.16), .fadeOut(withDuration: 0.26)]),
+                ]),
+                .removeFromParent(),
+            ]))
+        }
     }
 
     // MARK: External control
@@ -757,6 +1068,7 @@ final class GameScene: SKScene {
         shielded = false
         invulnerabilityRemaining = 0
         runTime = 0
+        dustAccumulator = 0
         lastUpdate = 0
         active = false
         player.setAlive()
@@ -824,6 +1136,7 @@ final class GameScene: SKScene {
         holding = true
         holdTime = 0
         player.squashJump()
+        if game?.settings.reducedMotion != true { spawnJumpDust() }
         game?.jumped()
     }
 

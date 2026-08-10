@@ -9,30 +9,35 @@ struct GameOverOverlay: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.62).ignoresSafeArea()
-            VStack(spacing: 14) {
-                Text("¡Ay!")
-                    .font(.system(size: 40, weight: .heavy, design: .rounded))
-                Text(reason)
-                    .font(.title3)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
-                if hasCheckpoint {
-                    Button("Retry checkpoint", action: retryCheckpoint)
-                        .buttonStyle(.borderedProminent)
-                        .keyboardShortcut(.defaultAction)
-                    Button("Restart level", action: retryStart)
-                } else {
-                    Button("Try again", action: retryStart)
-                        .buttonStyle(.borderedProminent)
-                        .keyboardShortcut(.defaultAction)
+            Color.storybookInk.opacity(0.72).ignoresSafeArea()
+            StorybookPanel {
+                VStack(spacing: 14) {
+                    Image(systemName: "heart.slash.fill")
+                        .font(.system(size: 42, weight: .bold))
+                        .foregroundStyle(Color.storybookRed)
+                    Text("¡Ay!")
+                        .font(.system(size: 40, weight: .black, design: .rounded))
+                    Text(reason)
+                        .font(.title3.weight(.medium))
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(Color.storybookInk.opacity(0.66))
+                    if hasCheckpoint {
+                        Button("Retry checkpoint", action: retryCheckpoint)
+                            .buttonStyle(StorybookPrimaryButtonStyle())
+                            .keyboardShortcut(.defaultAction)
+                        Button("Restart level", action: retryStart)
+                            .buttonStyle(StorybookSecondaryButtonStyle())
+                    } else {
+                        Button("Try again", action: retryStart)
+                            .buttonStyle(StorybookPrimaryButtonStyle())
+                            .keyboardShortcut(.defaultAction)
+                    }
+                    Button("Menu", action: onMenu)
+                        .buttonStyle(StorybookSecondaryButtonStyle())
                 }
-                Button("Menu", action: onMenu)
+                .frame(maxWidth: 480)
             }
-            .font(.title3.bold())
-            .padding(32)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24))
-            .padding()
+            .padding(22)
         }
     }
 }

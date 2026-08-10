@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Full-screen game-over / victory panel with a single action button.
+/// Full-screen parchment panel with a single primary action.
 struct MessageOverlay: View {
     let title: String
     let message: String
@@ -10,26 +10,30 @@ struct MessageOverlay: View {
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.6).ignoresSafeArea()
-            VStack(spacing: 16) {
-                Text(title)
-                    .font(.system(size: 40, weight: .heavy, design: .rounded))
-                Text(message)
-                    .font(.title3)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.secondary)
-                Button(button, action: action)
-                    .font(.title3.bold())
-                    .buttonStyle(.borderedProminent)
-                    .padding(.top, 8)
-                if let secondary {
-                    Button(secondary.label, action: secondary.action)
-                        .font(.body)
+            Color.storybookInk.opacity(0.7).ignoresSafeArea()
+            StorybookPanel {
+                VStack(spacing: 16) {
+                    Image(systemName: "sparkles")
+                        .font(.system(size: 38, weight: .bold))
+                        .foregroundStyle(Color.storybookGold)
+                    Text(title)
+                        .font(.system(size: 38, weight: .black, design: .rounded))
+                        .multilineTextAlignment(.center)
+                    Text(message)
+                        .font(.title3.weight(.medium))
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(Color.storybookInk.opacity(0.68))
+                    Button(button, action: action)
+                        .buttonStyle(StorybookPrimaryButtonStyle())
+                        .padding(.top, 3)
+                    if let secondary {
+                        Button(secondary.label, action: secondary.action)
+                            .buttonStyle(StorybookSecondaryButtonStyle())
+                    }
                 }
+                .frame(maxWidth: 520)
             }
-            .padding(32)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 24))
-            .padding()
+            .padding(22)
         }
     }
 }

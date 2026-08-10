@@ -67,10 +67,13 @@ struct GameView: View {
                 HStack(spacing: 14) {
                     Button(action: model.pause) {
                         Image(systemName: "pause.fill")
-                            .frame(width: 30, height: 30)
+                            .font(.caption.weight(.black))
+                            .foregroundStyle(Color.storybookInk)
+                            .frame(width: 34, height: 34)
+                            .background(Color.storybookCream, in: Circle())
+                            .overlay(Circle().stroke(.white.opacity(0.7), lineWidth: 2))
                     }
-                    .buttonStyle(.bordered)
-                    .tint(.white)
+                    .buttonStyle(.plain)
                     .accessibilityLabel("Pause game")
 
                     Label("\(model.wordsLearned)", systemImage: "text.book.closed.fill")
@@ -89,16 +92,23 @@ struct GameView: View {
                     Label("\(model.distance) m", systemImage: "figure.run")
                 }
                 ProgressView(value: model.progress)
-                    .tint(.yellow)
-                    .background(.white.opacity(0.25), in: Capsule())
+                    .tint(Color.storybookGold)
+                    .background(.white.opacity(0.2), in: Capsule())
                     .accessibilityLabel("Level progress")
                     .accessibilityValue("\(Int(model.progress * 100)) percent")
             }
             .font(.headline.monospacedDigit())
-            .foregroundStyle(.white)
+            .foregroundStyle(Color.storybookPaper)
             .padding(.horizontal, 14)
             .padding(.vertical, 9)
-            .background(model.settings.highContrast ? .black.opacity(0.82) : .black.opacity(0.18))
+            .background {
+                Rectangle()
+                    .fill(model.settings.highContrast ? Color.black.opacity(0.9) : Color.storybookInk.opacity(0.72))
+                    .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
+            }
+            .overlay(alignment: .bottom) {
+                Rectangle().fill(Color.storybookGold.opacity(0.72)).frame(height: 2)
+            }
             Spacer()
         }
     }
@@ -107,12 +117,25 @@ struct GameView: View {
         if let word = model.toast {
             VStack {
                 Spacer()
-                Text("\(word.spanish)  =  \(word.english)")
-                    .font(.title3.bold())
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 10)
-                    .background(.black.opacity(0.68), in: Capsule())
+                HStack(spacing: 10) {
+                    Image(systemName: "book.pages.fill")
+                        .foregroundStyle(Color.storybookRed)
+                    Text(word.spanish).fontWeight(.black)
+                    Image(systemName: "arrow.right")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Color.storybookInk.opacity(0.45))
+                    Text(word.english).fontWeight(.bold)
+                }
+                    .font(.title3)
+                    .foregroundStyle(Color.storybookInk)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 11)
+                    .background {
+                        Capsule()
+                            .fill(Color.storybookPaper)
+                            .shadow(color: .storybookInk.opacity(0.28), radius: 0, y: 4)
+                    }
+                    .overlay(Capsule().stroke(Color.storybookInk.opacity(0.45), lineWidth: 2))
                     .padding(.bottom, 28)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
