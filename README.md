@@ -6,7 +6,7 @@ A one-touch platformer (Mr Jump–style) that teaches beginner Spanish, for **iO
 - The character auto-runs to the right.
 - **Tap / click / press Space** to jump. Hold longer to jump higher.
 - Collect gold **word-coins** — a banner shows the Spanish word and its meaning.
-- At a **translation gate** (`?`), answer one randomly selected collected word that has not been quizzed yet. After a correct answer, scrolling pauses briefly so there is time to jump.
+- At a **translation gate** (`?`), answer one randomly selected collected word that has not been quizzed yet. Gates sit early on long, hazard-free platforms so there is room to prepare for the next jump.
 - Hitting a spike, falling in a gap, or a wrong answer restarts the run.
 - Reaching the finish line starts a final quiz covering every word once; pass it to complete the level.
 

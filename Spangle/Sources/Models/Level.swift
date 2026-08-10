@@ -39,15 +39,20 @@ struct Level {
         // followed by a gap, with a quiz gate every few chunks.
         let chunkCount = max(6, pool.count)
         for i in 0..<chunkCount {
-            let segLen = difficulty.segmentLength
             let isGateChunk = (i % 3 == 2)
+            // Gate chunks provide a long hazard-free runway after the quiz,
+            // including at the highest scroll speeds.
+            let gateRunwayLength = difficulty.worldSpeed * 0.9
+            let segLen = isGateChunk
+                ? max(difficulty.segmentLength, gateRunwayLength)
+                : difficulty.segmentLength
             let seg = GroundSegment(startX: x, endX: x + segLen)
             segments.append(seg)
 
             if isGateChunk {
-                // No spikes in a gate chunk, and the gate sits mid-segment so
-                // there is a full runway to react to the next gap after the quiz.
-                items.append(.gate(x: x + segLen * 0.5))
+                // Place the gate early so answering never resumes on the edge
+                // of the next gap.
+                items.append(.gate(x: x + segLen * 0.25))
             } else {
                 // One or two spikes partway along the segment. A double pair sits
                 // close together so a single well-timed jump clears both.
