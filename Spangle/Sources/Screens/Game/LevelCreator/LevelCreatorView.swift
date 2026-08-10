@@ -188,14 +188,6 @@ struct LevelCreatorView: View {
 
     private var toolsSidebar: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Button {
-                draft = .empty
-                draft.id = UUID()
-                savedDefinition = nil
-                clearSelection()
-            } label: {
-                Label("New", systemImage: "doc.badge.plus")
-            }
             Button(action: openVocabularyEditor) {
                 Label("Words", systemImage: "text.book.closed.fill")
             }

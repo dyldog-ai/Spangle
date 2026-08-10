@@ -19,5 +19,5 @@
 - [x] Allow selecting multiple elements at once (by clicking and dragging to create a rectangle) so they can be moved or deleted together
 - [x] Created levels should be stored in iCloud and available across devices
 - [x] Move the "Tools" so they're in a vertical list on the right of the timeline view
-- [ ] Remove the "New" button from the level editor detail screen
+- [x] Remove the "New" button from the level editor detail screen
 - [ ] Level elements should actually show how big they are in the editor
