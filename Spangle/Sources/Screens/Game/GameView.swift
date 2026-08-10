@@ -1,10 +1,25 @@
+import QYayKit
 import SpriteKit
 import SwiftUI
 
 struct GameView: View {
     @StateObject private var model = GameViewModel()
+    @State private var showsDeveloperNotes = false
 
     var body: some View {
+        #if os(iOS)
+        gameContent
+            .qyayNotesOnShake(configuration: .init(appName: "Spangle"))
+        #else
+        gameContent
+            .qyayNotesSheet(
+                isPresented: $showsDeveloperNotes,
+                configuration: .init(appName: "Spangle")
+            )
+        #endif
+    }
+
+    private var gameContent: some View {
         ZStack {
             SpriteView(scene: model.scene)
                 .ignoresSafeArea()
@@ -15,6 +30,7 @@ struct GameView: View {
             }
             overlay
         }
+        .task { model.reloadQueKitLevels() }
         #if os(macOS)
         .frame(minWidth: 720, minHeight: 405)
         #endif
@@ -25,7 +41,7 @@ struct GameView: View {
             HStack {
                 Label("\(model.wordsLearned)", systemImage: "text.book.closed.fill")
                 Spacer()
-                Text(currentThemeName)
+                Text(model.currentThemeName)
                     .font(.headline)
                 Spacer()
                 Label("\(model.distance) m", systemImage: "figure.run")
@@ -36,11 +52,6 @@ struct GameView: View {
             .padding(.vertical, 12)
             Spacer()
         }
-    }
-
-    private var currentThemeName: String {
-        let themes = Campaign.themes
-        return model.levelIndex < themes.count ? themes[model.levelIndex].name : ""
     }
 
     @ViewBuilder private var toast: some View {
@@ -62,30 +73,64 @@ struct GameView: View {
     @ViewBuilder private var overlay: some View {
         switch model.phase {
         case .menu:
-            MenuView(themes: Campaign.themes, unlockedThrough: model.unlockedThrough) { model.selectLevel($0) }
+            MenuView(
+                themes: model.themes,
+                isLocked: model.isLocked,
+                onSelect: model.selectLevel
+            )
         case .playing:
             EmptyView()
+        case let .generating(listName):
+            MessageOverlay(
+                title: "Creating level… ✨",
+                message: "Generating fresh words for \(listName)",
+                button: "Cancel",
+                action: model.goToMenu
+            )
+        case let .listError(message):
+            MessageOverlay(
+                title: "List unavailable",
+                message: message,
+                button: "Menu",
+                action: model.goToMenu
+            )
         case let .intro(level, theme):
-            LevelCardOverlay(emoji: theme.emoji, eyebrow: "Nivel \(level)",
-                             title: theme.name, subtitle: theme.english,
-                             button: "¡Vamos!", action: { model.startLevel() },
-                             secondary: ("Menu", { model.goToMenu() }))
+            LevelCardOverlay(
+                emoji: theme.emoji,
+                eyebrow: "Nivel \(level)",
+                title: theme.name,
+                subtitle: theme.english,
+                button: "¡Vamos!",
+                action: model.startLevel,
+                secondary: ("Menu", model.goToMenu)
+            )
         case let .quiz(word, options):
-            QuizOverlay(word: word, options: options) { model.answer($0) }
+            QuizOverlay(word: word, options: options, onPick: model.answer)
         case let .gameOver(reason):
-            MessageOverlay(title: "¡Ay!", message: reason,
-                           button: "Try again", action: { model.retry() },
-                           secondary: ("Menu", { model.goToMenu() }))
+            MessageOverlay(
+                title: "¡Ay!",
+                message: reason,
+                button: "Try again",
+                action: model.retry,
+                secondary: ("Menu", model.goToMenu)
+            )
         case let .levelComplete(nextTheme):
-            LevelCardOverlay(emoji: "🎉", eyebrow: "¡Nivel completado!",
-                             title: "You learned \(model.wordsLearned) words",
-                             subtitle: "Next: \(nextTheme.emoji) \(nextTheme.name)",
-                             button: "Next level", action: { model.nextLevel() },
-                             secondary: ("Menu", { model.goToMenu() }))
+            LevelCardOverlay(
+                emoji: "🎉",
+                eyebrow: "¡Nivel completado!",
+                title: "You learned \(model.wordsLearned) words",
+                subtitle: "Next: \(nextTheme.emoji) \(nextTheme.name)",
+                button: "Next level",
+                action: model.nextLevel,
+                secondary: ("Menu", model.goToMenu)
+            )
         case .campaignComplete:
-            MessageOverlay(title: "¡Campeón! 🏆",
-                           message: "You finished every level. ¡Felicidades!",
-                           button: "Menu", action: { model.goToMenu() })
+            MessageOverlay(
+                title: "¡Campeón! 🏆",
+                message: "You finished every level. ¡Felicidades!",
+                button: "Menu",
+                action: model.goToMenu
+            )
         }
     }
 }

@@ -1,11 +1,14 @@
+import QueKit
 import SpriteKit
 import SwiftUI
 
-/// Owns the SpriteKit scene and drives progression through the themed campaign.
+/// Owns the SpriteKit scene and drives progression through built-in and QueKit levels.
 @MainActor
 final class GameViewModel: ObservableObject {
     enum Phase: Equatable {
         case menu
+        case generating(listName: String)
+        case listError(message: String)
         case intro(level: Int, theme: Theme)
         case playing
         case quiz(word: VocabWord, options: [String])
@@ -15,43 +18,112 @@ final class GameViewModel: ObservableObject {
     }
 
     @Published private(set) var phase: Phase
+    @Published private(set) var themes: [Theme]
     @Published private(set) var levelIndex = 0
-    /// Highest level index the player has unlocked (0 = only the first level).
+    /// Highest built-in campaign level index the player has unlocked.
     @Published private(set) var unlockedThrough: Int
     @Published private(set) var wordsLearned = 0
     @Published private(set) var distance = 0
-    /// A brief translation banner shown when a coin is collected.
     @Published var toast: VocabWord?
 
     let scene: GameScene
 
     private let unlockKey = "highestUnlockedLevel"
-    private var themes: [Theme] { Campaign.themes }
-    private var theme: Theme { themes[levelIndex] }
+    private let wordListStore: WordListStore
+    private let generator: FoundationModelsWordListGenerator
+    private var generationTask: Task<Void, Never>?
 
-    init() {
+    private var theme: Theme { themes[levelIndex] }
+    var currentThemeName: String { themes.indices.contains(levelIndex) ? theme.name : "" }
+
+    init(
+        wordListStore: WordListStore = ICloudWordListStore(),
+        generator: FoundationModelsWordListGenerator = FoundationModelsWordListGenerator()
+    ) {
+        self.wordListStore = wordListStore
+        self.generator = generator
+        themes = Campaign.themes + QueListLibrary.allBundledLists.compactMap { $0.spangleTheme() }
         scene = GameScene(size: CGSize(width: 1024, height: 576))
         scene.scaleMode = .resizeFill
         unlockedThrough = UserDefaults.standard.integer(forKey: unlockKey)
-        let first = Campaign.themes[0]
         phase = .menu
         scene.game = self
-        scene.load(words: first.words, difficulty: .forLevel(0), skin: .forLevel(0))
+        scene.load(
+            words: Campaign.themes[0].words,
+            difficulty: .forLevel(0),
+            skin: .forLevel(0)
+        )
+    }
+
+    // MARK: - QueKit levels
+
+    /// Reloads iCloud lists so changes made in Que or another app appear in the menu.
+    func reloadQueKitLevels() {
+        let userLists = (try? wordListStore.userLists()) ?? []
+        let queKitThemes = (QueListLibrary.allBundledLists + userLists)
+            .compactMap { $0.spangleTheme() }
+        themes = Campaign.themes + queKitThemes
+    }
+
+    func isLocked(_ index: Int) -> Bool {
+        index < Campaign.themes.count && index > unlockedThrough
+    }
+
+    private func generateAndLoadLevel(at index: Int, list: WordList) {
+        guard generator.isAvailable else {
+            phase = .listError(message: "Apple Intelligence is unavailable, so “\(list.name)” can’t be generated on this device.")
+            return
+        }
+
+        generationTask?.cancel()
+        phase = .generating(listName: list.name)
+        generationTask = Task { [weak self] in
+            guard let self else { return }
+            do {
+                let prompt = list.prompt?.isEmpty == false ? list.prompt! : list.name
+                let generated = try await generator.generate(
+                    prompt: prompt,
+                    front: list.front,
+                    back: list.back,
+                    count: 16
+                )
+                guard !Task.isCancelled, let generatedTheme = list.spangleTheme(words: generated) else {
+                    return
+                }
+                loadLevel(index, theme: generatedTheme)
+            } catch {
+                guard !Task.isCancelled else { return }
+                phase = .listError(message: "Couldn’t generate “\(list.name)”. Please try again.")
+            }
+        }
     }
 
     // MARK: - Progression
 
-    /// Pick a level from the main menu. Ignores locked levels.
+    /// Picks a built-in or QueKit level. QueKit levels are always unlocked.
     func selectLevel(_ index: Int) {
-        guard index <= unlockedThrough else { return }
-        loadLevel(index)
+        guard themes.indices.contains(index), !isLocked(index) else { return }
+        let selectedTheme = themes[index]
+        if let list = selectedTheme.sourceList, list.isGenerated {
+            generateAndLoadLevel(at: index, list: list)
+        } else {
+            loadLevel(index, theme: selectedTheme)
+        }
     }
 
     func goToMenu() {
+        generationTask?.cancel()
+        generationTask = nil
         phase = .menu
+        reloadQueKitLevels()
     }
 
-    private func loadLevel(_ index: Int) {
+    private func loadLevel(_ index: Int, theme: Theme) {
+        guard !theme.words.isEmpty else {
+            phase = .listError(message: "“\(theme.name)” has no words yet.")
+            return
+        }
+        themes[index] = theme
         levelIndex = index
         wordsLearned = 0
         distance = 0
@@ -60,18 +132,17 @@ final class GameViewModel: ObservableObject {
         phase = .intro(level: index + 1, theme: theme)
     }
 
-    /// Dismiss the intro and start playing the current level.
     func startLevel() {
         phase = .playing
         scene.begin()
     }
 
     func nextLevel() {
-        loadLevel(levelIndex + 1)
+        selectLevel(levelIndex + 1)
     }
 
     func restartCampaign() {
-        loadLevel(0)
+        selectLevel(0)
     }
 
     // MARK: - Called by the scene
@@ -98,14 +169,15 @@ final class GameViewModel: ObservableObject {
     }
 
     func finished() {
-        unlock(levelIndex + 1)
+        if levelIndex < Campaign.themes.count {
+            unlock(levelIndex + 1)
+        }
         let next = levelIndex + 1
         phase = next < themes.count ? .levelComplete(nextTheme: themes[next]) : .campaignComplete
     }
 
-    /// Unlock up to `index`, persisting the highest reached.
     private func unlock(_ index: Int) {
-        let capped = min(index, themes.count - 1)
+        let capped = min(index, Campaign.themes.count - 1)
         guard capped > unlockedThrough else { return }
         unlockedThrough = capped
         UserDefaults.standard.set(capped, forKey: unlockKey)
@@ -123,7 +195,6 @@ final class GameViewModel: ObservableObject {
         }
     }
 
-    /// Retry the current level after dying.
     func retry() {
         wordsLearned = 0
         distance = 0

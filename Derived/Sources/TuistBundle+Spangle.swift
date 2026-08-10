@@ -12,12 +12,12 @@ import Foundation
 private class BundleFinder {}
 extension Foundation.Bundle {
 /// Since Spangle is a application, the bundle for classes within this module can be used directly.
-    nonisolated static let module = Bundle(for: BundleFinder.self)
+    static let module = Bundle(for: BundleFinder.self)
 }
 // MARK: - Objective-C Bundle Accessor
 @objc
 public final class SpangleResources: NSObject {
-@objc public nonisolated class var bundle: Bundle {
+@objc public class var bundle: Bundle {
     return .module
 }
 }

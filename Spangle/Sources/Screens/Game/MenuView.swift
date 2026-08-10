@@ -3,7 +3,7 @@ import SwiftUI
 /// Main menu: title plus a scrollable grid of all levels to pick from.
 struct MenuView: View {
     let themes: [Theme]
-    let unlockedThrough: Int
+    let isLocked: (Int) -> Bool
     let onSelect: (Int) -> Void
 
     private let columns = [GridItem(.adaptive(minimum: 150), spacing: 14)]
@@ -27,7 +27,7 @@ struct MenuView: View {
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 14) {
                         ForEach(Array(themes.enumerated()), id: \.element.id) { index, theme in
-                            let locked = index > unlockedThrough
+                            let locked = isLocked(index)
                             Button { onSelect(index) } label: {
                                 LevelTile(number: index + 1, theme: theme,
                                           skin: .forLevel(index), locked: locked)

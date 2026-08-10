@@ -11,6 +11,10 @@ A one-touch platformer (Mr Jump–style) that teaches beginner Spanish, for **iO
 - Reach the finish line to win. Score = words learned + distance.
 
 ## Run it
+
+Both `QueKit` and `QYayKit` are sibling local Swift package dependencies. A signed
+build needs the QueKit and QYay iCloud containers configured for the app identifier.
+
 ```bash
 tuist generate --no-open
 # macOS
@@ -23,9 +27,16 @@ xcodebuild build -workspace Spangle.xcworkspace -scheme Spangle -destination "ge
 - `Spangle/Sources/Models` — `VocabWord`, `Vocabulary` (word list + quiz builder), `Level` (procedural level).
 - `Spangle/Sources/Screens/Game` — `GameScene` (SpriteKit, manual scroller physics), `GameViewModel` (state bridge), `GameView` + overlays (SwiftUI).
 
-## Campaign
+## Levels
 
-12 themed levels progress from easy, cognate-heavy words to longer, abstract vocabulary while the platforming ramps up (faster scroll, wider gaps, shorter platforms, double spikes). Edit `Campaign.themes` to add or reorder levels; difficulty auto-scales via `Difficulty.forLevel(_:)`.
+The original 12 themed campaign levels remain unchanged and unlock in order. Spangle
+also imports every Spanish ↔ English list from the sibling `QueKit` package—including
+Que’s bundled lists and user-created iCloud lists—as additional, always-unlocked
+levels. The menu refreshes the shared collection when it opens.
+
+Prompt lists generate 16 fresh word pairs with Apple Foundation Models before their
+level begins. Fixed lists start immediately. QueKit lists are shared through the
+`iCloud.com.dylanelliott.QueKit` iCloud Documents container.
 
 ## Graphics
 

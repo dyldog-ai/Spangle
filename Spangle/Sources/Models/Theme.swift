@@ -1,18 +1,37 @@
 import Foundation
+import QueKit
 
-/// A themed level: a Spanish title, an emoji and the vocabulary that appears
-/// as word-coins and quiz distractors within it.
+/// A themed level and the vocabulary that appears in it.
 struct Theme: Identifiable, Equatable {
-    let id = UUID()
-    let name: String     // Spanish title, e.g. "Los Colores"
-    let english: String  // English subtitle, e.g. "Colours"
+    let id: String
+    let name: String
+    let english: String
     let emoji: String
     let words: [VocabWord]
+    /// Present when this level came from QueKit rather than the built-in campaign.
+    let sourceList: WordList?
+
+    init(
+        id: String = UUID().uuidString,
+        name: String,
+        english: String,
+        emoji: String,
+        words: [VocabWord],
+        sourceList: WordList? = nil
+    ) {
+        self.id = id
+        self.name = name
+        self.english = english
+        self.emoji = emoji
+        self.words = words
+        self.sourceList = sourceList
+    }
+
+    var isQueKitLevel: Bool { sourceList != nil }
 
     static func == (lhs: Theme, rhs: Theme) -> Bool { lhs.id == rhs.id }
 
-    /// A multiple-choice quiz for `word` using same-theme distractors, which
-    /// makes higher levels harder because the wrong options are more related.
+    /// A multiple-choice quiz using distractors from the same list.
     func quiz(for word: VocabWord) -> [String] {
         let wrong = words
             .filter { $0.id != word.id }
