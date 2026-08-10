@@ -630,6 +630,13 @@ final class GameViewModel: ObservableObject {
     }
     #endif
 
+    func unlockAllSkins() {
+        #if DEVELOPER_FEATURES
+        characters.unlockAllDesigns()
+        objectWillChange.send()
+        #endif
+    }
+
     func unlockEverything() {
         #if DEVELOPER_FEATURES
         unlockedThrough = Self.setDeveloperLevelsUnlocked(true, defaults: defaults)

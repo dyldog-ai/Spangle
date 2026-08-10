@@ -4,6 +4,7 @@ struct SettingsView: View {
     @ObservedObject var settings: GameSettings
     let onReset: () -> Void
     let onUnlockEverything: () -> Void
+    let onUnlockAllSkins: () -> Void
     let onClearUnlocks: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var confirmsReset = false
@@ -28,10 +29,13 @@ struct SettingsView: View {
                     Button("Unlock all campaign levels", systemImage: "lock.open.fill") {
                         onUnlockEverything()
                     }
+                    Button("Unlock all skins", systemImage: "tshirt.fill") {
+                        onUnlockAllSkins()
+                    }
                     Button("Clear level unlocks", systemImage: "lock.fill", role: .destructive) {
                         confirmsClearUnlocks = true
                     }
-                    Text("These controls only change campaign access. Scores, ratings, stars, characters, and learning history are preserved.")
+                    Text("Developer unlocks preserve scores, ratings, star balance, and learning history.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

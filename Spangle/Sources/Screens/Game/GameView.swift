@@ -99,6 +99,7 @@ struct GameView: View {
                     hasCompletedOnboarding = false
                 },
                 onUnlockEverything: model.unlockEverything,
+                onUnlockAllSkins: model.unlockAllSkins,
                 onClearUnlocks: model.clearLevelUnlocks
             )
         }

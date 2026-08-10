@@ -5,6 +5,20 @@ import Testing
 
 struct DeveloperSettingsTests {
     @MainActor @Test
+    func allSkinsCanBeUnlockedWithoutSpendingStars() throws {
+        let suite = "DeveloperSkinTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let store = CharacterStore(defaults: defaults)
+        store.deposit(stars: 25)
+
+        store.unlockAllDesigns()
+
+        #expect(store.ownedIDs == Set(CharacterCatalog.all.map(\.id)))
+        #expect(store.starBalance == 25)
+    }
+
+    @MainActor @Test
     func campaignUnlockControlsAreReversible() throws {
         let suite = "DeveloperSettingsTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))

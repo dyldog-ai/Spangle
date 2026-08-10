@@ -69,6 +69,13 @@ final class CharacterStore: ObservableObject {
         save()
     }
 
+    #if DEVELOPER_FEATURES
+    func unlockAllDesigns() {
+        ownedIDs = Set(designs.map(\.id))
+        save()
+    }
+    #endif
+
     func reset() {
         starBalance = 0
         ownedIDs = [CharacterCatalog.original.id]
