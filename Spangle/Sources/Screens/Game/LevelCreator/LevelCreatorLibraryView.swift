@@ -92,7 +92,7 @@ struct LevelCreatorLibraryView: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(level.title)
                     .font(.headline)
-                Text("\(level.words.count) words · finish at \(Int(level.finishX))")
+                Text("\(level.vocabularyCount) words · finish at \(Int(level.finishX))")
                     .font(.caption)
                     .foregroundStyle(Color.storybookInk.opacity(0.62))
             }

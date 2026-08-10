@@ -299,7 +299,7 @@ final class GameViewModel: ObservableObject {
                     prompt: prompt,
                     front: .spanish,
                     back: .english,
-                    count: definition.generatedWordCount ?? 8
+                    count: definition.vocabularyCount
                 )
                 guard !Task.isCancelled else { return }
                 var playableDefinition = definition

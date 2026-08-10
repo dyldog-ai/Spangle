@@ -221,7 +221,7 @@ struct GameView: View {
     private var customLevelMenuItems: [CustomLevelMenuItem] {
         #if DEVELOPER_FEATURES
         levelCreatorStore.levels.map {
-            CustomLevelMenuItem(id: $0.id, title: $0.title, emoji: $0.emoji, wordCount: $0.words.count)
+            CustomLevelMenuItem(id: $0.id, title: $0.title, emoji: $0.emoji, wordCount: $0.vocabularyCount)
         }
         #else
         []

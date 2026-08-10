@@ -34,7 +34,6 @@ struct LevelCreatorView: View {
     @State private var vocabularyError: String?
     @State private var vocabularyMode = VocabularyEditorMode.manual
     @State private var generationPrompt = ""
-    @State private var generatedWordCount = 8
     @State private var dragOrigins: [UUID: LevelObjectPosition] = [:]
     @State private var loadedInitialLevel = false
     @State private var editorSection = LevelEditorSection.level
@@ -112,7 +111,10 @@ struct LevelCreatorView: View {
 
                 editorStatus
             }
-                .fixedSize()
+            .fixedSize()
+
+            Spacer()
+
             Button(action: saveDraft) {
                 actionLabel("Save", systemImage: "square.and.arrow.down.fill")
             }
@@ -146,12 +148,13 @@ struct LevelCreatorView: View {
                     }
                 }
                 .pickerStyle(.menu)
-                .frame(width: 54)
                 .accessibilityValue(draft.emoji)
+                .labelsHidden()
                 TextField("Level title", text: $draft.title).frame(width: 150)
-                LabeledContent("Finish") {
-                    TextField("Finish", value: $draft.finishX, format: .number).frame(width: 72)
+                LabeledContent("Length") {
+                    TextField("Length", value: $draft.finishX, format: .number).frame(width: 72)
                 }
+                .fixedSize()
                 Stepper("Difficulty \(draft.difficultyIndex + 1)",
                         value: $draft.difficultyIndex, in: 0...11)
                     .fixedSize()
@@ -170,13 +173,12 @@ struct LevelCreatorView: View {
                     vocabularyMode = draft.usesGeneratedVocabulary ? .generated : .manual
                     vocabularyDraft = draft.vocabularyText
                     generationPrompt = draft.vocabularyPrompt ?? ""
-                    generatedWordCount = draft.generatedWordCount ?? 8
                     vocabularyError = nil
                     showsVocabularyEditor = true
                 } label: {
                     Label("Words", systemImage: "text.book.closed.fill")
                 }
-                Text("\(draft.words.count) words · \(draft.objects.count) objects")
+                Text("\(draft.vocabularyCount) words · \(draft.objects.count) objects")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
             }
@@ -225,8 +227,11 @@ struct LevelCreatorView: View {
                         VStack(alignment: .leading, spacing: 10) {
                             TextField("Prompt, e.g. animals on a farm", text: $generationPrompt)
                                 .textFieldStyle(.roundedBorder)
-                            Stepper("Generate \(generatedWordCount) words each run",
-                                    value: $generatedWordCount, in: 4...20)
+                            Label(
+                                "\(draft.objects.count(where: { $0.kind == .coin })) word coins will produce the same number of fresh words each run.",
+                                systemImage: "book.pages.fill"
+                            )
+                            .font(.subheadline.weight(.semibold))
                             Label(
                                 "Apple Intelligence creates a fresh Spanish–English list whenever this level is played.",
                                 systemImage: "sparkles"
@@ -277,7 +282,7 @@ struct LevelCreatorView: View {
                 vocabularyError = "Add a prompt for dynamic vocabulary generation."
                 return
             }
-            draft.configureGeneratedVocabulary(prompt: prompt, count: generatedWordCount)
+            draft.configureGeneratedVocabulary(prompt: prompt)
         } else {
             guard let words = CustomLevelDefinition.parseVocabulary(vocabularyDraft) else {
                 vocabularyError = "Use “Spanish = English” on every non-empty line."
@@ -506,7 +511,11 @@ struct LevelCreatorView: View {
     private func add(_ kind: EditableLevelObject.Kind) {
         let furthest = draft.objects.map(\.x).max() ?? 500
         let x = min(draft.finishX - 120, max(600, furthest + 220))
-        let object = EditableLevelObject.make(kind: kind, x: x)
+        var object = EditableLevelObject.make(kind: kind, x: x)
+        if kind == .coin, draft.usesGeneratedVocabulary {
+            object.spanish = ""
+            object.english = ""
+        }
         draft.objects.append(object)
         selectedID = object.id
     }

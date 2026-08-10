@@ -15,4 +15,5 @@
 - [x] Combine two top bars in level editor detail screen. Use picker to swap sections. Save and play buttons and status label always be visible
 - [x] Level emoji should be selectable from a picker
 - [x] Generating the word list from a prompt shouldn't just put words in the manual list. The words should be generated dynamically, like the other levels with generated word lists
-- [ ] Number of words generated should be defined by how many coins are in the level
+- [x] Number of words generated should be defined by how many coins are in the level
+- [ ] Allow selecting multiple elements at once (by clicking and dragging to create a rectangle) so they can be moved or deleted together

@@ -20,11 +20,15 @@ struct LevelCreatorTests {
     @Test
     func generatedVocabularyIsConfiguredWithoutPreGeneratingWords() {
         var definition = CustomLevelDefinition.empty
-        definition.configureGeneratedVocabulary(prompt: "animals on a farm", count: 6)
+        for index in 0..<6 {
+            definition.objects.append(.make(kind: .coin, x: 800 + Double(index * 500)))
+        }
+        definition.configureGeneratedVocabulary(prompt: "animals on a farm")
 
         #expect(definition.usesGeneratedVocabulary)
         #expect(definition.vocabularyPrompt == "animals on a farm")
         #expect(definition.words.isEmpty)
+        #expect(definition.vocabularyCount == 6)
         #expect(definition.objects.filter { $0.kind == .coin }.count == 6)
         #expect(definition.validationMessage == nil)
 

@@ -80,32 +80,13 @@ struct CustomLevelDefinition: Identifiable, Codable, Equatable {
         objects.removeAll { $0.kind == .coin && !retainedCoinIDs.contains($0.id) }
     }
 
-    mutating func configureGeneratedVocabulary(prompt: String, count: Int) {
+    mutating func configureGeneratedVocabulary(prompt: String) {
         vocabularyPrompt = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
-        generatedWordCount = max(4, min(20, count))
-        let coinIndices = objects.indices
-            .filter { objects[$0].kind == .coin }
-            .sorted { objects[$0].x < objects[$1].x }
-        var retainedCoinIDs = Set<UUID>()
-        var nextX = max(800, coinIndices.compactMap { objects[$0].x }.max().map { $0 + 500 } ?? 800)
-
-        for wordIndex in 0..<(generatedWordCount ?? 4) {
-            if wordIndex < coinIndices.count {
-                let objectIndex = coinIndices[wordIndex]
-                objects[objectIndex].spanish = ""
-                objects[objectIndex].english = ""
-                retainedCoinIDs.insert(objects[objectIndex].id)
-            } else {
-                if nextX >= finishX - 100 { finishX = nextX + 500 }
-                var coin = EditableLevelObject.make(kind: .coin, x: nextX)
-                coin.spanish = ""
-                coin.english = ""
-                retainedCoinIDs.insert(coin.id)
-                objects.append(coin)
-                nextX += 500
-            }
+        generatedWordCount = nil
+        for index in objects.indices where objects[index].kind == .coin {
+            objects[index].spanish = ""
+            objects[index].english = ""
         }
-        objects.removeAll { $0.kind == .coin && !retainedCoinIDs.contains($0.id) }
     }
 
     mutating func applyGeneratedVocabulary(_ generatedWords: [VocabWord]) {
@@ -116,6 +97,10 @@ struct CustomLevelDefinition: Identifiable, Codable, Equatable {
         vocabularyPrompt?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
     }
 
+    var vocabularyCount: Int {
+        usesGeneratedVocabulary ? objects.count(where: { $0.kind == .coin }) : words.count
+    }
+
     var vocabularyText: String {
         words.map { "\($0.spanish) = \($0.english)" }.joined(separator: "\n")
     }
@@ -123,7 +108,7 @@ struct CustomLevelDefinition: Identifiable, Codable, Equatable {
     var validationMessage: String? {
         if title.trimmingCharacters(in: .whitespaces).isEmpty { return "Add a level title." }
         if usesGeneratedVocabulary {
-            if (generatedWordCount ?? 0) < 4 { return "Generate at least four words per run." }
+            if vocabularyCount < 4 { return "Add at least four word coins to generate vocabulary." }
         } else if words.count < 4 {
             return "Add at least four word coins with unique vocabulary."
         }
