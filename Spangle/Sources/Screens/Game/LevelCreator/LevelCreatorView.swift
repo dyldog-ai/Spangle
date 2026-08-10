@@ -7,6 +7,7 @@ struct LevelCreatorView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var draft = CustomLevelDefinition.starter
     @State private var selectedID: UUID?
+    @State private var savedDefinition: CustomLevelDefinition?
 
     private let horizontalScale: CGFloat = 0.16
     private let verticalScale: CGFloat = 0.52
@@ -17,10 +18,16 @@ struct LevelCreatorView: View {
             ZStack {
                 StorybookBackdrop()
                 VStack(spacing: 10) {
-                    metadataBar
-                    timeline
-                    inspector
-                    objectPalette
+                    creatorActionBar
+                    ScrollView(.vertical) {
+                        VStack(spacing: 10) {
+                            metadataBar
+                            timeline
+                            inspector
+                            objectPalette
+                        }
+                    }
+                    .scrollIndicators(.visible)
                 }
                 .padding(14)
             }
@@ -30,6 +37,45 @@ struct LevelCreatorView: View {
         #if os(macOS)
         .frame(minWidth: 900, minHeight: 560)
         #endif
+    }
+
+    private var creatorActionBar: some View {
+        HStack(spacing: 10) {
+            Menu("Saved Levels", systemImage: "folder.fill") {
+                if store.levels.isEmpty {
+                    Text("No saved levels")
+                }
+                ForEach(store.levels) { level in
+                    Button("\(level.emoji) \(level.title)") {
+                        draft = level
+                        savedDefinition = level
+                        selectedID = nil
+                    }
+                }
+            }
+            Button("New", systemImage: "doc.badge.plus") {
+                draft = .starter
+                draft.id = UUID()
+                savedDefinition = nil
+                selectedID = nil
+            }
+            Spacer(minLength: 8)
+            if savedDefinition == draft {
+                Label("Saved", systemImage: "checkmark.circle.fill")
+                    .font(.caption.bold())
+                    .foregroundStyle(Color.storybookGreen)
+                    .transition(.opacity)
+            }
+            Button("Save", systemImage: "square.and.arrow.down.fill", action: saveDraft)
+                .buttonStyle(StorybookSecondaryButtonStyle())
+            Button("Play", systemImage: "play.fill", action: playDraft)
+                .buttonStyle(StorybookPrimaryButtonStyle())
+                .disabled(draft.validationMessage != nil)
+        }
+        .foregroundStyle(Color.storybookInk)
+        .padding(10)
+        .background(Color.storybookPaper, in: RoundedRectangle(cornerRadius: 16))
+        .accessibilityElement(children: .contain)
     }
 
     private var metadataBar: some View {
@@ -224,36 +270,25 @@ struct LevelCreatorView: View {
     }
 
     @ToolbarContentBuilder private var creatorToolbar: some ToolbarContent {
-        ToolbarItemGroup(placement: .primaryAction) {
-            Menu("Saved", systemImage: "folder.fill") {
-                if store.levels.isEmpty {
-                    Text("No saved levels")
-                }
-                ForEach(store.levels) { level in
-                    Button("\(level.emoji) \(level.title)") {
-                        draft = level
-                        selectedID = nil
-                    }
-                }
-            }
-            Button("New", systemImage: "doc.badge.plus") {
-                draft = .starter
-                draft.id = UUID()
-                selectedID = nil
-            }
-            Button("Save", systemImage: "square.and.arrow.down.fill") {
-                store.save(draft)
-            }
-            Button("Play", systemImage: "play.fill") {
-                store.save(draft)
+        ToolbarItem(placement: .confirmationAction) {
+            Button("Save & Close") {
+                saveDraft()
                 dismiss()
-                onPlay(draft)
             }
-            .disabled(draft.validationMessage != nil)
         }
-        ToolbarItem(placement: .cancellationAction) {
-            Button("Done") { dismiss() }
+    }
+
+    private func saveDraft() {
+        store.save(draft)
+        withAnimation(.easeOut(duration: 0.18)) {
+            savedDefinition = draft
         }
+    }
+
+    private func playDraft() {
+        saveDraft()
+        dismiss()
+        onPlay(draft)
     }
 
     private func add(_ kind: EditableLevelObject.Kind) {

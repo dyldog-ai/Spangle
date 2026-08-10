@@ -25,9 +25,12 @@ struct LevelCreatorTests {
         var definition = CustomLevelDefinition.starter
         definition.title = "Saved Timeline"
         store.save(definition)
+        definition.title = "Updated Timeline"
+        store.save(definition)
 
         let restored = LevelCreatorStore(defaults: defaults)
-        #expect(restored.levels.first?.title == "Saved Timeline")
+        #expect(restored.levels.count == 1)
+        #expect(restored.levels.first?.title == "Updated Timeline")
     }
 }
 #endif
