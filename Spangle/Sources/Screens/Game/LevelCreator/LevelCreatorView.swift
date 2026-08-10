@@ -60,7 +60,12 @@ struct LevelCreatorView: View {
                     creatorTopBar
                     ScrollView(.vertical) {
                         VStack(spacing: 10) {
-                            timeline
+                            HStack(alignment: .top, spacing: 10) {
+                                timeline
+                                if editorSection == .tools {
+                                    toolsSidebar
+                                }
+                            }
                             inspector
                             objectPalette
                         }
@@ -175,45 +180,61 @@ struct LevelCreatorView: View {
                     .fixedSize()
             }
         case .tools:
-            HStack(spacing: 8) {
-                Button {
-                    draft = .empty
-                    draft.id = UUID()
-                    savedDefinition = nil
-                    clearSelection()
-                } label: {
-                    Label("New", systemImage: "doc.badge.plus")
-                }
-                Button {
-                    vocabularyMode = draft.usesGeneratedVocabulary ? .generated : .manual
-                    vocabularyDraft = draft.vocabularyText
-                    generationPrompt = draft.vocabularyPrompt ?? ""
-                    vocabularyError = nil
-                    showsVocabularyEditor = true
-                } label: {
-                    Label("Words", systemImage: "text.book.closed.fill")
-                }
-                Button {
-                    if isRectangleSelecting {
-                        isRectangleSelecting = false
-                        selectionStart = nil
-                        selectionCurrent = nil
-                    } else {
-                        clearSelection()
-                        isRectangleSelecting = true
-                    }
-                } label: {
-                    Label(isRectangleSelecting ? "Drag a box" : "Select", systemImage: "rectangle.dashed")
-                }
-                if !selectedIDs.isEmpty {
-                    Button(role: .destructive) { confirmsDeleteSelection = true } label: {
-                        Label("Delete \(selectedIDs.count)", systemImage: "trash.fill")
-                    }
-                }
-                Text("\(draft.vocabularyCount) words · \(draft.objects.count) objects")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
+            Label("Timeline tools", systemImage: "sidebar.right")
+                .font(.caption.bold())
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var toolsSidebar: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Button {
+                draft = .empty
+                draft.id = UUID()
+                savedDefinition = nil
+                clearSelection()
+            } label: {
+                Label("New", systemImage: "doc.badge.plus")
             }
+            Button(action: openVocabularyEditor) {
+                Label("Words", systemImage: "text.book.closed.fill")
+            }
+            Button(action: toggleRectangleSelection) {
+                Label(isRectangleSelecting ? "Drag a box" : "Select", systemImage: "rectangle.dashed")
+            }
+            if !selectedIDs.isEmpty {
+                Button(role: .destructive) { confirmsDeleteSelection = true } label: {
+                    Label("Delete \(selectedIDs.count)", systemImage: "trash.fill")
+                }
+            }
+            Divider()
+            Text("\(draft.vocabularyCount) words")
+            Text("\(draft.objects.count) objects")
+        }
+        .font(.caption.bold())
+        .buttonStyle(StorybookSecondaryButtonStyle())
+        .foregroundStyle(Color.storybookInk)
+        .padding(10)
+        .frame(width: isCompactEditor ? 125 : 165, alignment: .topLeading)
+        .background(Color.storybookPaper, in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    private func openVocabularyEditor() {
+        vocabularyMode = draft.usesGeneratedVocabulary ? .generated : .manual
+        vocabularyDraft = draft.vocabularyText
+        generationPrompt = draft.vocabularyPrompt ?? ""
+        vocabularyError = nil
+        showsVocabularyEditor = true
+    }
+
+    private func toggleRectangleSelection() {
+        if isRectangleSelecting {
+            isRectangleSelecting = false
+            selectionStart = nil
+            selectionCurrent = nil
+        } else {
+            clearSelection()
+            isRectangleSelecting = true
         }
     }
 
