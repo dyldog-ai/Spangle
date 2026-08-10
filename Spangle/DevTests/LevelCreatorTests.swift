@@ -5,6 +5,19 @@ import Testing
 
 struct LevelCreatorTests {
     @Test
+    func vocabularyListReplacesWordCoins() throws {
+        let words = try #require(CustomLevelDefinition.parseVocabulary("gato = cat\nperro = dog\nsol = sun\nluna = moon\nagua = water"))
+        var definition = CustomLevelDefinition.starter
+
+        definition.replaceVocabulary(with: words)
+
+        #expect(definition.words == words)
+        #expect(definition.objects.filter { $0.kind == .coin }.count == 5)
+        #expect(definition.validationMessage == nil)
+        #expect(CustomLevelDefinition.parseVocabulary("missing separator") == nil)
+    }
+
+    @Test
     func starterDefinitionIsPlayableAndBuildsItsGap() throws {
         let definition = CustomLevelDefinition.starter
         #expect(definition.validationMessage == nil)

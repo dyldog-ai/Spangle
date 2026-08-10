@@ -1,19 +1,10 @@
 # TODO
 
-- [x] Mid-level quizzes should test any collected, not-yet-quizzed word rather than only the most recent word.
-- [x] Reaching the end of a level should test every word in that level.
-- [x] Make it easier to jump immediately after quizzes on higher levels.
-- [x] Fix the level scroll view glitching near the bottom.
-- [x] Add an app icon
-- [x] Actually, I liked it better without the delay after quizzes
-- [x] Word orders (for coins and quizzes) should be randomised
-- [x] Character sometimes disappears after restarting after dying
-- [x] Sometimes lose the ability to jump by clicking (space still works)
-- [x] Top of quiz flags and final flag are cut off on iPhone
-- [x] Word review should still be a regular game play, not just the quiz bit
-- [x] Mid-level flags should not overlap word coins
-- [x] Popups are taller than the screen on iOS. Change vertical button layouts to horizontal.
-- [x] QueKit and QYayKit should not be included in production release builds
-- [x] Add background music to the levels
-- [x] Build a level creator so I can create my own levels. Should not be included in production release builds
-- [x] Make two targets, one that includes QYay and QueKit (DEBUG) and one that doesn't (PROD). In the debug app's settings also add the ability to unlock everything and to clear unlocks
+- [x] Should be able to set words in level creator (either a manually written list or an AI generated list)
+- [ ] Created levels should show in the level list
+- [ ] Level elements in editor should move as they're dragged, not just when they're dropped
+- [ ] Level editor doesn't fit on iPhone
+- [ ] When playing the level from the editor, exiting the level should take me back to the editor
+- [ ] I should be able to delete saved levels
+- [ ] Rather than going straight into the level editor when tapping the button, go into a list where I can select and edit a previously made level or create a new one, delete them, etc.
+- [ ] New levels should be empty

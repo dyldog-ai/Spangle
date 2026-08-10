@@ -8,6 +8,9 @@ struct LevelCreatorView: View {
     @State private var draft = CustomLevelDefinition.starter
     @State private var selectedID: UUID?
     @State private var savedDefinition: CustomLevelDefinition?
+    @State private var showsVocabularyEditor = false
+    @State private var vocabularyDraft = ""
+    @State private var vocabularyError: String?
 
     private let horizontalScale: CGFloat = 0.16
     private let verticalScale: CGFloat = 0.52
@@ -37,6 +40,9 @@ struct LevelCreatorView: View {
         #if os(macOS)
         .frame(minWidth: 900, minHeight: 560)
         #endif
+        .sheet(isPresented: $showsVocabularyEditor) {
+            vocabularyEditor
+        }
     }
 
     private var creatorActionBar: some View {
@@ -59,6 +65,11 @@ struct LevelCreatorView: View {
                 savedDefinition = nil
                 selectedID = nil
             }
+            Button("Words", systemImage: "text.book.closed.fill") {
+                vocabularyDraft = draft.vocabularyText
+                vocabularyError = nil
+                showsVocabularyEditor = true
+            }
             Spacer(minLength: 8)
             if savedDefinition == draft {
                 Label("Saved", systemImage: "checkmark.circle.fill")
@@ -76,6 +87,52 @@ struct LevelCreatorView: View {
         .padding(10)
         .background(Color.storybookPaper, in: RoundedRectangle(cornerRadius: 16))
         .accessibilityElement(children: .contain)
+    }
+
+    private var vocabularyEditor: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Enter one Spanish and English pair per line, separated by an equals sign.")
+                    .font(.subheadline)
+                Text("hola = hello\nsalta = jump")
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                TextEditor(text: $vocabularyDraft)
+                    .font(.body.monospaced())
+                    .padding(6)
+                    .background(Color.storybookPaper, in: RoundedRectangle(cornerRadius: 12))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.storybookInk.opacity(0.3)))
+                if let vocabularyError {
+                    Label(vocabularyError, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption.bold())
+                        .foregroundStyle(Color.storybookRed)
+                }
+            }
+            .padding()
+            .navigationTitle("Level Vocabulary")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { showsVocabularyEditor = false }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Apply") { applyVocabulary() }
+                }
+            }
+        }
+        #if os(macOS)
+        .frame(minWidth: 520, minHeight: 420)
+        #endif
+    }
+
+    private func applyVocabulary() {
+        guard let words = CustomLevelDefinition.parseVocabulary(vocabularyDraft) else {
+            vocabularyError = "Use “Spanish = English” on every non-empty line."
+            return
+        }
+        draft.replaceVocabulary(with: words)
+        selectedID = nil
+        vocabularyError = nil
+        showsVocabularyEditor = false
     }
 
     private var metadataBar: some View {

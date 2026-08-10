@@ -56,6 +56,50 @@ struct CustomLevelDefinition: Identifiable, Codable, Equatable {
         return values.filter { seen.insert($0.id).inserted }
     }
 
+    static func parseVocabulary(_ text: String) -> [VocabWord]? {
+        let lines = text.split(whereSeparator: \.isNewline)
+        guard !lines.isEmpty else { return nil }
+        var parsed: [VocabWord] = []
+        for line in lines {
+            let parts = line.split(separator: "=", maxSplits: 1).map {
+                $0.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            guard parts.count == 2, !parts[0].isEmpty, !parts[1].isEmpty else { return nil }
+            parsed.append(VocabWord(spanish: parts[0], english: parts[1]))
+        }
+        return parsed
+    }
+
+    mutating func replaceVocabulary(with newWords: [VocabWord]) {
+        let coinIndices = objects.indices
+            .filter { objects[$0].kind == .coin }
+            .sorted { objects[$0].x < objects[$1].x }
+        var retainedCoinIDs = Set<UUID>()
+        var nextX = max(800, coinIndices.compactMap { objects[$0].x }.max().map { $0 + 500 } ?? 800)
+
+        for (wordIndex, word) in newWords.enumerated() {
+            if wordIndex < coinIndices.count {
+                let objectIndex = coinIndices[wordIndex]
+                objects[objectIndex].spanish = word.spanish
+                objects[objectIndex].english = word.english
+                retainedCoinIDs.insert(objects[objectIndex].id)
+            } else {
+                if nextX >= finishX - 100 { finishX = nextX + 500 }
+                var coin = EditableLevelObject.make(kind: .coin, x: nextX)
+                coin.spanish = word.spanish
+                coin.english = word.english
+                retainedCoinIDs.insert(coin.id)
+                objects.append(coin)
+                nextX += 500
+            }
+        }
+        objects.removeAll { $0.kind == .coin && !retainedCoinIDs.contains($0.id) }
+    }
+
+    var vocabularyText: String {
+        words.map { "\($0.spanish) = \($0.english)" }.joined(separator: "\n")
+    }
+
     var validationMessage: String? {
         if title.trimmingCharacters(in: .whitespaces).isEmpty { return "Add a level title." }
         if words.count < 4 { return "Add at least four word coins with unique vocabulary." }
