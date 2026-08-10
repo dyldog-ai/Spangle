@@ -1,4 +1,7 @@
 #if DEVELOPER_FEATURES
+#if canImport(QueKit)
+import QueKit
+#endif
 import SwiftUI
 
 private struct LevelObjectPosition {
@@ -18,6 +21,9 @@ struct LevelCreatorView: View {
     @State private var showsVocabularyEditor = false
     @State private var vocabularyDraft = ""
     @State private var vocabularyError: String?
+    @State private var generationPrompt = ""
+    @State private var generatedWordCount = 8
+    @State private var isGeneratingVocabulary = false
     @State private var dragOrigins: [UUID: LevelObjectPosition] = [:]
     @State private var loadedInitialLevel = false
 
@@ -128,7 +134,30 @@ struct LevelCreatorView: View {
     private var vocabularyEditor: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Enter one Spanish and English pair per line, separated by an equals sign.")
+                GroupBox("Generate with Apple Intelligence") {
+                    HStack(spacing: 10) {
+                        TextField("Prompt, e.g. animals on a farm", text: $generationPrompt)
+                            .textFieldStyle(.roundedBorder)
+                        Stepper("\(generatedWordCount) words", value: $generatedWordCount, in: 4...20)
+                            .fixedSize()
+                        Button(action: generateVocabulary) {
+                            if isGeneratingVocabulary {
+                                ProgressView()
+                                    .controlSize(.small)
+                            } else {
+                                Label("Generate", systemImage: "sparkles")
+                            }
+                        }
+                        .disabled(generationPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                                  || isGeneratingVocabulary || !vocabularyGeneratorAvailable)
+                    }
+                    if !vocabularyGeneratorAvailable {
+                        Text("Apple Intelligence must be enabled and available on this device.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Text("Or enter one Spanish and English pair per line, separated by an equals sign.")
                     .font(.subheadline)
                 Text("hola = hello\nsalta = jump")
                     .font(.caption.monospaced())
@@ -157,6 +186,39 @@ struct LevelCreatorView: View {
         }
         #if os(macOS)
         .frame(minWidth: 520, minHeight: 420)
+        #endif
+    }
+
+    private var vocabularyGeneratorAvailable: Bool {
+        #if canImport(QueKit)
+        FoundationModelsWordListGenerator().isAvailable
+        #else
+        false
+        #endif
+    }
+
+    private func generateVocabulary() {
+        #if canImport(QueKit)
+        let prompt = generationPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !prompt.isEmpty else { return }
+        isGeneratingVocabulary = true
+        vocabularyError = nil
+        Task { @MainActor in
+            do {
+                let generated = try await FoundationModelsWordListGenerator().generate(
+                    prompt: prompt,
+                    front: .spanish,
+                    back: .english,
+                    count: generatedWordCount
+                )
+                vocabularyDraft = generated
+                    .map { "\($0.front) = \($0.back)" }
+                    .joined(separator: "\n")
+            } catch {
+                vocabularyError = "Vocabulary generation failed. Check Apple Intelligence and try again."
+            }
+            isGeneratingVocabulary = false
+        }
         #endif
     }
 

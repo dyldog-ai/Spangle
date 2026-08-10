@@ -11,6 +11,6 @@
 - [x] Level creator on iOS
     - [x] Remove navigation bar -- takes up to much vertical space
     - [x] Scrollview should go all the way to the bottom
-- [ ] Allow created level vocabulary to be generated from a prompt instead of providing a manual word list
+- [x] Allow created level vocabulary to be generated from a prompt instead of providing a manual word list (both should be options)
 - [ ] Combine two top bars in level editor detail screen. Use picker to swap sections. Save and play buttons and status label always be visible
 - [ ] Level emoji should be selectable from a picker
