@@ -4,4 +4,5 @@
 - [x] Reaching the end of a level should test every word in that level.
 - [x] Make it easier to jump immediately after quizzes on higher levels.
 - [x] Fix the level scroll view glitching near the bottom.
-- [ ] Add an app icon
+- [x] Add an app icon
+- [ ] Actually, I liked it better without the delay after quizzes
