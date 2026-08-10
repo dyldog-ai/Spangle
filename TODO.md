@@ -16,4 +16,4 @@
 - [x] QueKit and QYayKit should not be included in production release builds
 - [x] Add background music to the levels
 - [x] Build a level creator so I can create my own levels. Should not be included in production release builds
-- [ ] Make two targets, one that includes QYay and QueKit (DEBUG) and one that doesn't (PROD). In the debug app's settings also add the ability to unlock everything and to clear unlocks
+- [x] Make two targets, one that includes QYay and QueKit (DEBUG) and one that doesn't (PROD). In the debug app's settings also add the ability to unlock everything and to clear unlocks

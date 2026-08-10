@@ -572,18 +572,29 @@ final class GameViewModel: ObservableObject {
         scene.begin()
     }
 
+    #if DEVELOPER_FEATURES
+    static func setDeveloperLevelsUnlocked(_ unlocked: Bool, defaults: UserDefaults) -> Int {
+        let unlockKey = "highestUnlockedLevel"
+        if unlocked {
+            let lastLevel = Campaign.themes.count - 1
+            defaults.set(lastLevel, forKey: unlockKey)
+            return lastLevel
+        }
+        defaults.removeObject(forKey: unlockKey)
+        return 0
+    }
+    #endif
+
     func unlockEverything() {
         #if DEVELOPER_FEATURES
-        unlockedThrough = Campaign.themes.count - 1
-        defaults.set(unlockedThrough, forKey: unlockKey)
+        unlockedThrough = Self.setDeveloperLevelsUnlocked(true, defaults: defaults)
         objectWillChange.send()
         #endif
     }
 
     func clearLevelUnlocks() {
         #if DEVELOPER_FEATURES
-        unlockedThrough = 0
-        defaults.removeObject(forKey: unlockKey)
+        unlockedThrough = Self.setDeveloperLevelsUnlocked(false, defaults: defaults)
         objectWillChange.send()
         #endif
     }
