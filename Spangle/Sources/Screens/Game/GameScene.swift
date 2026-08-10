@@ -12,6 +12,7 @@ final class GameScene: SKScene {
     private let jumpVelocity: CGFloat = 1050
     private let maxHold: TimeInterval = 0.18
     private let holdGravityFactor: CGFloat = 0.45
+    private let postQuizGraceDuration: TimeInterval = 0.8
     private let playerSize: CGFloat = 46
 
     // MARK: World state
@@ -27,6 +28,7 @@ final class GameScene: SKScene {
     private var holdTime: TimeInterval = 0
     private var active = false
     private var lastUpdate: TimeInterval = 0
+    private var postQuizGraceRemaining: TimeInterval = 0
     private var quizWordQueue = QuizWordQueue()
 
     // MARK: Nodes
@@ -284,7 +286,11 @@ final class GameScene: SKScene {
         let dt = min(lastUpdate == 0 ? 0 : currentTime - lastUpdate, 1.0 / 30)
         guard dt > 0 else { return }
 
-        scroll += worldSpeed * CGFloat(dt)
+        if postQuizGraceRemaining > 0 {
+            postQuizGraceRemaining = max(0, postQuizGraceRemaining - dt)
+        } else {
+            scroll += worldSpeed * CGFloat(dt)
+        }
 
         // Vertical integration with variable-height jump.
         let g: CGFloat
@@ -401,6 +407,9 @@ final class GameScene: SKScene {
     }
 
     func resumeFromGate() {
+        // Hold the world briefly so the player can see the next hazard and begin
+        // a jump before high-level scrolling resumes.
+        postQuizGraceRemaining = postQuizGraceDuration
         active = true
     }
 
@@ -415,6 +424,7 @@ final class GameScene: SKScene {
         holding = false
         holdTime = 0
         quizWordQueue.removeAll()
+        postQuizGraceRemaining = 0
         lastUpdate = 0
         active = false
         player.setAlive()
