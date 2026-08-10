@@ -8,8 +8,8 @@
 - [x] The character has extra stuff on his face when you're playing the game (like in his mouth). While you're at it, add some more personality to the character and the different skins. Create more custom skins, like celebrities, known characters, make Isaac from the Binding of Isaac
 - [x] The navigation with the play created level has got a bit twisted. If I play a created level from a screen, the game play view should be presented modally and fill the window (the screen on iOS). When I dismiss the game view, I should be brought back to where I was, that's it. There's some weird auto presenting of the editor detail screen when the game view is being dismissed -- it happens when you dismiss after tapping play from the created levels list AND you can see it for a moment when you dismiss after tapping play from the creator detail screen -- get rid of it
 - [x] The character skins view isn't showing the skins as they actually are when you're playing. It should show the full proper skin you see when you're playing the game
-- [ ] Level editor
+- [x] Level editor
     - [x] Add duplicate tool
     - [x] Tapping background should clear selection
-    - [ ] On Mac, should be able to just drag to select multiple, no need for tool button
+    - [x] On Mac, should be able to just drag to select multiple, no need for tool button
     - [ ] I still see the other views when I'm dismissing the game view from the level editor screen. Split the game view out into its own view so this doesn't happen

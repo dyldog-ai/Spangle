@@ -181,9 +181,11 @@ struct LevelCreatorView: View {
             Button(action: openVocabularyEditor) {
                 Label("Words", systemImage: "text.book.closed.fill")
             }
+            #if os(iOS)
             Button(action: toggleRectangleSelection) {
                 Label(isRectangleSelecting ? "Drag a box" : "Select", systemImage: "rectangle.dashed")
             }
+            #endif
             if !selectedIDs.isEmpty {
                 Button(action: duplicateSelectedObjects) {
                     Label("Duplicate \(selectedIDs.count)", systemImage: "plus.square.on.square")
@@ -353,12 +355,14 @@ struct LevelCreatorView: View {
             }
             .contentShape(Rectangle())
             .frame(width: timelineWidth, height: timelineHeight)
+            #if os(iOS)
             .simultaneousGesture(
                 DragGesture(minimumDistance: 4)
                     .onChanged(updateRectangleSelection)
                     .onEnded(finishRectangleSelection),
                 including: isRectangleSelecting ? .all : .none
             )
+            #endif
         }
         .scrollDisabled(isRectangleSelecting)
         .scrollIndicators(.visible)
@@ -392,7 +396,18 @@ struct LevelCreatorView: View {
         .clipShape(RoundedRectangle(cornerRadius: 18))
         .contentShape(Rectangle())
         .onTapGesture(perform: clearSelection)
+        #if os(macOS)
+        .highPriorityGesture(macOSRectangleSelectionGesture)
+        #endif
     }
+
+    #if os(macOS)
+    private var macOSRectangleSelectionGesture: some Gesture {
+        DragGesture(minimumDistance: 4)
+            .onChanged(updateRectangleSelection)
+            .onEnded(finishRectangleSelection)
+    }
+    #endif
 
     private var finishMarker: some View {
         Label("FINISH", systemImage: "flag.checkered")
@@ -585,13 +600,17 @@ struct LevelCreatorView: View {
     }
 
     private func updateRectangleSelection(_ gesture: DragGesture.Value) {
+        #if os(iOS)
         guard isRectangleSelecting else { return }
+        #endif
         selectionStart = gesture.startLocation
         selectionCurrent = gesture.location
     }
 
     private func finishRectangleSelection(_ gesture: DragGesture.Value) {
+        #if os(iOS)
         guard isRectangleSelecting else { return }
+        #endif
         selectionCurrent = gesture.location
         let rectangle = selectionRectangle ?? .zero
         selectedIDs = Set(draft.objects.filter { object in
