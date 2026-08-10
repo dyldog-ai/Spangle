@@ -549,6 +549,7 @@ final class PlayerNode: SKNode {
 
     func setAlive() {
         body.fillColor = activeBodyColor
+        removeAction(forKey: "death")
         removeAction(forKey: "squash")
         setScale(1)
         zRotation = 0

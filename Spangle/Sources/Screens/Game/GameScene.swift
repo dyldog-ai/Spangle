@@ -1198,7 +1198,10 @@ final class GameScene: SKScene {
             count: 14
         )
         player.flashDead()
-        player.run(.sequence([.scale(to: 1.4, duration: 0.1), .scale(to: 0, duration: 0.2)]))
+        player.run(
+            .sequence([.scale(to: 1.4, duration: 0.1), .scale(to: 0, duration: 0.2)]),
+            withKey: "death"
+        )
         game?.died(reason: reason)
     }
 
