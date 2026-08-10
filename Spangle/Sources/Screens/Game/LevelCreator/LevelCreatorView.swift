@@ -9,6 +9,13 @@ private struct LevelObjectPosition {
     let y: Double
 }
 
+private enum LevelEditorSection: String, CaseIterable, Identifiable {
+    case level = "Level"
+    case tools = "Tools"
+
+    var id: Self { self }
+}
+
 struct LevelCreatorView: View {
     @ObservedObject var store: LevelCreatorStore
     @Environment(\.verticalSizeClass) private var verticalSizeClass
@@ -26,6 +33,7 @@ struct LevelCreatorView: View {
     @State private var isGeneratingVocabulary = false
     @State private var dragOrigins: [UUID: LevelObjectPosition] = [:]
     @State private var loadedInitialLevel = false
+    @State private var editorSection = LevelEditorSection.level
 
     private let horizontalScale: CGFloat = 0.16
     private var isCompactEditor: Bool { verticalSizeClass == .compact }
@@ -37,10 +45,9 @@ struct LevelCreatorView: View {
             ZStack {
                 StorybookBackdrop()
                 VStack(spacing: 10) {
-                    creatorActionBar
+                    creatorTopBar
                     ScrollView(.vertical) {
                         VStack(spacing: 10) {
-                            metadataBar
                             timeline
                             inspector
                             objectPalette
@@ -75,30 +82,25 @@ struct LevelCreatorView: View {
         .onAppear(perform: loadInitialLevelIfNeeded)
     }
 
-    private var creatorActionBar: some View {
+    private var creatorTopBar: some View {
         HStack(spacing: isCompactEditor ? 7 : 10) {
-            Button {
-                draft = .empty
-                draft.id = UUID()
-                savedDefinition = nil
-                selectedID = nil
-            } label: {
-                actionLabel("New", systemImage: "doc.badge.plus")
+            Picker("Editor section", selection: $editorSection) {
+                ForEach(LevelEditorSection.allCases) { section in
+                    Text(section.rawValue).tag(section)
+                }
             }
-            Button {
-                vocabularyDraft = draft.vocabularyText
-                vocabularyError = nil
-                showsVocabularyEditor = true
-            } label: {
-                actionLabel("Words", systemImage: "text.book.closed.fill")
+            .pickerStyle(.segmented)
+            .frame(width: isCompactEditor ? 118 : 150)
+
+            ScrollView(.horizontal) {
+                sectionControls
+                    .padding(.horizontal, 2)
             }
-            Spacer(minLength: isCompactEditor ? 0 : 8)
-            if savedDefinition == draft {
-                Label(isCompactEditor ? "" : "Saved", systemImage: "checkmark.circle.fill")
-                    .font(.caption.bold())
-                    .foregroundStyle(Color.storybookGreen)
-                    .transition(.opacity)
-            }
+            .scrollIndicators(.hidden)
+            .frame(maxWidth: .infinity)
+
+            editorStatus
+                .fixedSize()
             Button(action: saveDraft) {
                 actionLabel("Save", systemImage: "square.and.arrow.down.fill")
             }
@@ -115,10 +117,65 @@ struct LevelCreatorView: View {
             .buttonStyle(StorybookSecondaryButtonStyle())
             #endif
         }
+        .textFieldStyle(.roundedBorder)
         .foregroundStyle(Color.storybookInk)
         .padding(10)
         .background(Color.storybookPaper, in: RoundedRectangle(cornerRadius: 16))
         .accessibilityElement(children: .contain)
+    }
+
+    @ViewBuilder private var sectionControls: some View {
+        switch editorSection {
+        case .level:
+            HStack(spacing: 8) {
+                TextField("Emoji", text: $draft.emoji).frame(width: 54)
+                TextField("Level title", text: $draft.title).frame(width: 150)
+                LabeledContent("Finish") {
+                    TextField("Finish", value: $draft.finishX, format: .number).frame(width: 72)
+                }
+                Stepper("Difficulty \(draft.difficultyIndex + 1)",
+                        value: $draft.difficultyIndex, in: 0...11)
+                    .fixedSize()
+            }
+        case .tools:
+            HStack(spacing: 8) {
+                Button {
+                    draft = .empty
+                    draft.id = UUID()
+                    savedDefinition = nil
+                    selectedID = nil
+                } label: {
+                    Label("New", systemImage: "doc.badge.plus")
+                }
+                Button {
+                    vocabularyDraft = draft.vocabularyText
+                    vocabularyError = nil
+                    showsVocabularyEditor = true
+                } label: {
+                    Label("Words", systemImage: "text.book.closed.fill")
+                }
+                Text("\(draft.words.count) words · \(draft.objects.count) objects")
+                    .font(.caption.monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder private var editorStatus: some View {
+        if let message = draft.validationMessage {
+            Label(isCompactEditor ? "" : message, systemImage: "exclamationmark.triangle.fill")
+                .font(.caption.bold())
+                .foregroundStyle(Color.storybookRed)
+                .accessibilityLabel(message)
+        } else if savedDefinition == draft {
+            Label(isCompactEditor ? "" : "Saved", systemImage: "checkmark.circle.fill")
+                .font(.caption.bold())
+                .foregroundStyle(Color.storybookGreen)
+        } else {
+            Label(isCompactEditor ? "" : "Unsaved", systemImage: "pencil.circle.fill")
+                .font(.caption.bold())
+                .foregroundStyle(Color.storybookBlue)
+        }
     }
 
     @ViewBuilder
@@ -231,40 +288,6 @@ struct LevelCreatorView: View {
         selectedID = nil
         vocabularyError = nil
         showsVocabularyEditor = false
-    }
-
-    private var metadataBar: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: 10) {
-                TextField("Emoji", text: $draft.emoji)
-                    .frame(width: 54)
-                TextField("Level title", text: $draft.title)
-                    .frame(minWidth: 150)
-                LabeledContent("Finish") {
-                    TextField("Finish", value: $draft.finishX, format: .number)
-                        .frame(width: 78)
-                }
-                Stepper("Difficulty \(draft.difficultyIndex + 1)",
-                        value: $draft.difficultyIndex, in: 0...11)
-                Spacer()
-                if let message = draft.validationMessage {
-                    Label(message, systemImage: "exclamationmark.triangle.fill")
-                        .font(.caption)
-                        .foregroundStyle(Color.storybookRed)
-                        .lineLimit(2)
-                } else {
-                    Label("Ready to play", systemImage: "checkmark.circle.fill")
-                        .font(.caption.bold())
-                        .foregroundStyle(Color.storybookGreen)
-                }
-            }
-            .frame(minWidth: isCompactEditor ? 760 : 0)
-        }
-        .scrollIndicators(.visible)
-        .textFieldStyle(.roundedBorder)
-        .padding(10)
-        .background(Color.storybookPaper, in: RoundedRectangle(cornerRadius: 16))
-        .foregroundStyle(Color.storybookInk)
     }
 
     private var timeline: some View {
