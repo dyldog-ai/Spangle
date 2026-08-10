@@ -17,7 +17,7 @@ A one-touch platformer (Mr Jump–style) that teaches beginner Spanish, for **iO
 - **Campaign** — 12 themed levels that unlock in order.
 - **Daily Challenge** — the same deterministic 24-word mixed run for everyone on a given day, with a daily best score.
 - **Marathon** — one long run containing all 96 built-in campaign words.
-- **Word Review** — adaptive, platforming-free practice that prioritises weak and due vocabulary.
+- **Word Review** — an adaptive 12-word runner that prioritises weak and due vocabulary, with normal collecting, obstacles, gates, stars, and a final quiz.
 - **QueKit Lists** — bundled and personal Spanish ↔ English lists become always-unlocked standalone levels.
 - **Character Atelier** — bank the stars from completed runs, then buy and equip 12 designs ranging from friendly recolours to 900-star prestige characters.
 

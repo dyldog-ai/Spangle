@@ -10,6 +10,6 @@
 - [x] Character sometimes disappears after restarting after dying
 - [x] Sometimes lose the ability to jump by clicking (space still works)
 - [x] Top of quiz flags and final flag are cut off on iPhone
-- [ ] Word review should still be a regular game play, not just the quiz bit
+- [x] Word review should still be a regular game play, not just the quiz bit
 - [ ] Mid-level flags should not overlap word coins
 - [ ] Popups are taller than the screen on iOS. Change vertical button layouts to horizontal.

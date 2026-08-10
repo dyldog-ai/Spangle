@@ -129,7 +129,7 @@ struct MenuView: View {
                 )
                 challengeButton(
                     title: "Word Review",
-                    subtitle: "Practise your weakest words",
+                    subtitle: "Run with your weakest words",
                     icon: "brain.head.profile",
                     action: onReview
                 )

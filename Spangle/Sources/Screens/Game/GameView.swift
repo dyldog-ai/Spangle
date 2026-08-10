@@ -255,14 +255,6 @@ struct GameView: View {
                 onContinue: model.continueAfterResults,
                 onMenu: model.goToMenu
             )
-        case let .reviewComplete(correct, total):
-            MessageOverlay(
-                title: "Review complete 🧠",
-                message: "\(correct) of \(total) correct. Your next review will adapt to these answers.",
-                button: "Menu",
-                action: model.goToMenu,
-                secondary: ("Review again", model.startReview)
-            )
         }
     }
 }

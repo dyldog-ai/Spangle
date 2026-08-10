@@ -17,7 +17,6 @@ final class GameViewModel: ObservableObject {
         case reviewCorrection(QuizQuestion)
         case gameOver(reason: String)
         case results(RunSummary, nextTheme: Theme?)
-        case reviewComplete(correct: Int, total: Int)
     }
 
     @Published private(set) var phase: Phase
@@ -49,10 +48,7 @@ final class GameViewModel: ObservableObject {
     private let feedback: GameFeedback
     private var generationTask: Task<Void, Never>?
     private var finalQuizQueue = QuizWordQueue()
-    private var reviewQueue: [VocabWord] = []
-    private var reviewPosition = 0
     private var isFinalQuizActive = false
-    private var isReviewActive = false
     private var mode: GameMode = .campaign
     private var activeTheme: Theme?
     private var startedAt = Date()
@@ -221,22 +217,22 @@ final class GameViewModel: ObservableObject {
     }
 
     func startReview() {
-        let allWords = Campaign.themes.flatMap(\.words)
-        reviewQueue = learning.reviewWords(from: allWords)
-        reviewPosition = 0
-        quizCorrect = 0
-        quizMistakes = 0
-        isReviewActive = true
-        isFinalQuizActive = false
-        mode = .review
-        activeTheme = Theme(
+        let reviewWords = learning.reviewWords(from: Campaign.themes.flatMap(\.words))
+        let reviewTheme = Theme(
             id: "review",
             name: "Repaso",
-            english: "Personal practice",
+            english: "Adaptive platforming practice",
             emoji: "🧠",
-            words: allWords
+            words: reviewWords
         )
-        presentNextReviewQuestion()
+        loadLevel(
+            0,
+            theme: reviewTheme,
+            mode: .review,
+            difficultyIndex: 2,
+            seed: freshSeed(for: "spangle.review"),
+            eyebrow: "Adaptive Word Review"
+        )
     }
 
     func goToMenu() {
@@ -245,7 +241,6 @@ final class GameViewModel: ObservableObject {
         scene.pauseRun()
         phase = .menu
         activeTheme = nil
-        isReviewActive = false
         reloadQueKitLevels()
     }
 
@@ -403,19 +398,6 @@ final class GameViewModel: ObservableObject {
         )
     }
 
-    private func presentNextReviewQuestion() {
-        guard reviewQueue.indices.contains(reviewPosition) else {
-            isReviewActive = false
-            phase = .reviewComplete(correct: quizCorrect, total: reviewQueue.count)
-            return
-        }
-        let word = reviewQueue[reviewPosition]
-        presentQuestion(
-            for: word,
-            heading: "Review · \(reviewPosition + 1) of \(reviewQueue.count)"
-        )
-    }
-
     func answer(_ answer: String) {
         guard case let .quiz(question) = phase else { return }
         let correct = answer == question.correctAnswer
@@ -426,10 +408,7 @@ final class GameViewModel: ObservableObject {
             combo = min(8, combo + 1)
             score += 200 * combo
             feedback.correct()
-            if isReviewActive {
-                reviewPosition += 1
-                presentNextReviewQuestion()
-            } else if isFinalQuizActive {
+            if isFinalQuizActive {
                 presentNextFinalQuiz()
             } else {
                 phase = .playing
@@ -439,7 +418,7 @@ final class GameViewModel: ObservableObject {
             quizMistakes += 1
             combo = 1
             feedback.damage()
-            if isReviewActive {
+            if mode == .review {
                 phase = .reviewCorrection(question)
             } else {
                 phase = .gameOver(
@@ -451,8 +430,12 @@ final class GameViewModel: ObservableObject {
 
     func continueReviewAfterCorrection() {
         guard case .reviewCorrection = phase else { return }
-        reviewPosition += 1
-        presentNextReviewQuestion()
+        if isFinalQuizActive {
+            presentNextFinalQuiz()
+        } else {
+            phase = .playing
+            scene.resumeFromGate()
+        }
     }
 
     private func completeRun() {
@@ -539,7 +522,6 @@ final class GameViewModel: ObservableObject {
         finalQuizQueue.removeAll()
         checkpointProgress = nil
         isFinalQuizActive = false
-        isReviewActive = false
         usedCheckpoint = false
     }
 
