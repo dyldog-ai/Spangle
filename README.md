@@ -6,9 +6,9 @@ A one-touch platformer (Mr Jump–style) that teaches beginner Spanish, for **iO
 - The character auto-runs to the right.
 - **Tap / click / press Space** to jump. Hold longer to jump higher.
 - Collect gold **word-coins** — a banner shows the Spanish word and its meaning.
-- At a **translation gate** (`?`), pick the correct English meaning to pass.
+- At a **translation gate** (`?`), answer one randomly selected collected word that has not been quizzed yet. After a correct answer, scrolling pauses briefly so there is time to jump.
 - Hitting a spike, falling in a gap, or a wrong answer restarts the run.
-- Reach the finish line to win. Score = words learned + distance.
+- Reaching the finish line starts a final quiz covering every word once; pass it to complete the level.
 
 ## Run it
 
@@ -24,8 +24,9 @@ xcodebuild build -workspace Spangle.xcworkspace -scheme Spangle -destination "ge
 ```
 
 ## Structure
-- `Spangle/Sources/Models` — `VocabWord`, `Vocabulary` (word list + quiz builder), `Level` (procedural level).
+- `Spangle/Sources/Models` — vocabulary, themes, the quiz queue, and procedural level models.
 - `Spangle/Sources/Screens/Game` — `GameScene` (SpriteKit, manual scroller physics), `GameViewModel` (state bridge), `GameView` + overlays (SwiftUI).
+- `Spangle/Tests` — quiz queue and final-quiz coverage tests.
 
 ## Levels
 
