@@ -280,6 +280,7 @@ final class GameViewModel: ObservableObject {
         generationTask = nil
         #endif
         scene.pauseRun()
+        feedback.stopMusic()
         phase = .menu
         activeTheme = nil
         reloadQueKitLevels()
@@ -300,6 +301,7 @@ final class GameViewModel: ObservableObject {
         if themes.indices.contains(index), mode == .campaign || mode == .imported {
             themes[index] = theme
         }
+        feedback.stopMusic()
         activeTheme = theme
         self.mode = mode
         levelIndex = index
@@ -317,18 +319,21 @@ final class GameViewModel: ObservableObject {
     func startLevel() {
         startedAt = .now
         phase = .playing
+        feedback.startMusic(style: levelIndex)
         scene.begin()
     }
 
     func pause() {
         guard phase == .playing else { return }
         scene.pauseRun()
+        feedback.pauseMusic()
         phase = .paused
     }
 
     func resume() {
         guard phase == .paused else { return }
         phase = .playing
+        feedback.resumeMusic()
         scene.resumeRun()
     }
 
@@ -411,11 +416,13 @@ final class GameViewModel: ObservableObject {
 
     func died(reason: String) {
         combo = 1
+        feedback.pauseMusic()
         feedback.damage()
         phase = .gameOver(reason: reason)
     }
 
     func finished() {
+        feedback.pauseMusic()
         isFinalQuizActive = true
         finalQuizQueue = QuizWordQueue(words: theme.words)
         presentNextFinalQuiz()
@@ -505,6 +512,7 @@ final class GameViewModel: ObservableObject {
             duration: Date.now.timeIntervalSince(startedAt),
             usedCheckpoint: usedCheckpoint
         )
+        feedback.stopMusic()
         feedback.complete()
         phase = .results(summary, nextTheme: nextTheme)
     }
@@ -524,6 +532,7 @@ final class GameViewModel: ObservableObject {
         quizMistakes = checkpointProgress.quizMistakes
         toast = nil
         usedCheckpoint = true
+        feedback.startMusic(style: levelIndex)
         phase = .playing
     }
 
@@ -531,6 +540,7 @@ final class GameViewModel: ObservableObject {
         resetRunProgress()
         startedAt = .now
         phase = .playing
+        feedback.startMusic(style: levelIndex)
         scene.restart()
         scene.begin()
     }

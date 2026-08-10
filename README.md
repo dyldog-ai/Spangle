@@ -81,8 +81,9 @@ hazards, platforms, collectibles, gates, enemies, updrafts, and particle effects
 Mediterranean tile motifs, tactile controls, and a matching illustrated app icon
 carry the style through menus, quizzes, onboarding, and results.
 
-Sound effects are original real-time compositions rendered with layered musical
-voices, shaped envelopes, harmonics, pitch movement, noise, and a six-voice pool.
-Pickups, stars, checkpoints, answers, damage, jumps, and level completion each
-have a distinct sonic signature and can overlap naturally. They use the active
-device audio format and require no licensed audio files.
+Audio is composed and rendered in real time with layered musical voices, shaped
+envelopes, harmonics, pitch movement, and noise. A theme-varied 12-second storybook
+score combines warm pads, plucked melody, bass, and restrained percussion in a
+sample-accurate loop that follows pause, retry, quiz, and results state. Pickups,
+stars, checkpoints, answers, damage, jumps, and completion retain distinct overlapping
+signatures. Everything uses the active device format and requires no licensed files.

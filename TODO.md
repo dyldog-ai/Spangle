@@ -14,5 +14,5 @@
 - [x] Mid-level flags should not overlap word coins
 - [x] Popups are taller than the screen on iOS. Change vertical button layouts to horizontal.
 - [x] QueKit and QYayKit should not be included in production release builds
-- [ ] Add background music to the levels
+- [x] Add background music to the levels
 - [ ] Build a level creator so I can create my own levels. Should not be included in production release builds

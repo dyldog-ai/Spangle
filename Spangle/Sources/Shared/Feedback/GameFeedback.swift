@@ -10,8 +10,11 @@ import UIKit
 final class GameFeedback {
     private let engine = AVAudioEngine()
     private let players = (0..<6).map { _ in AVAudioPlayerNode() }
+    private let musicPlayer = AVAudioPlayerNode()
     private weak var settings: GameSettings?
     private var nextPlayer = 0
+    private var musicBuffer: AVAudioPCMBuffer?
+    private var musicStyle: Int?
 
     init(settings: GameSettings) {
         self.settings = settings
@@ -19,8 +22,121 @@ final class GameFeedback {
             engine.attach(player)
             engine.connect(player, to: engine.mainMixerNode, format: nil)
         }
+        engine.attach(musicPlayer)
+        engine.connect(musicPlayer, to: engine.mainMixerNode, format: nil)
         engine.mainMixerNode.outputVolume = 0.82
         try? engine.start()
+    }
+
+    /// Starts a gentle, theme-varied storybook score. The arrangement is
+    /// rendered once, then looped sample-accurately by AVAudioPlayerNode.
+    func startMusic(style: Int) {
+        guard settings?.soundEnabled == true else {
+            stopMusic()
+            return
+        }
+        if musicStyle == style, musicBuffer != nil {
+            resumeMusic()
+            return
+        }
+        if !engine.isRunning { try? engine.start() }
+
+        let format = musicPlayer.outputFormat(forBus: 0)
+        let sampleRate = format.sampleRate
+        let channelCount = Int(format.channelCount)
+        let duration = 12.0
+        guard sampleRate > 0, channelCount > 0 else { return }
+        let frameCount = AVAudioFrameCount(sampleRate * duration)
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount),
+              let channels = buffer.floatChannelData else { return }
+        buffer.frameLength = frameCount
+        for channel in 0..<channelCount {
+            channels[channel].initialize(repeating: 0, count: Int(frameCount))
+        }
+
+        let scales: [[Int]] = [
+            [0, 2, 4, 7, 9, 7, 4, 2],
+            [0, 3, 5, 7, 10, 7, 5, 3],
+            [0, 2, 5, 7, 9, 7, 5, 2],
+            [0, 4, 5, 7, 11, 7, 5, 4],
+        ]
+        let roots = [220.0, 196.0, 246.94, 174.61]
+        let scale = scales[abs(style) % scales.count]
+        let root = roots[abs(style / scales.count) % roots.count]
+        var voices: [Voice] = []
+
+        // Warm sustained harmony changes every four seconds.
+        for bar in 0..<3 {
+            let start = Double(bar) * 4
+            let degree = [0, 5, 7][bar]
+            for interval in [0, 4, 7] {
+                voices.append(Voice(
+                    start: start,
+                    duration: 3.95,
+                    from: root * pow(2, Double(degree + interval - 12) / 12),
+                    gain: 0.009,
+                    timbre: .rounded
+                ))
+            }
+        }
+
+        // Guitar/marimba-like melody and a restrained bass pulse.
+        for beat in 0..<24 {
+            let start = Double(beat) * 0.5
+            let step = scale[(beat + max(0, style) * 3) % scale.count]
+            let octave = beat.isMultiple(of: 7) ? 12 : 0
+            voices.append(Voice(
+                start: start,
+                duration: 0.38,
+                from: root * pow(2, Double(step + octave) / 12),
+                gain: beat.isMultiple(of: 4) ? 0.026 : 0.019,
+                timbre: beat.isMultiple(of: 3) ? .bell : .pluck
+            ))
+            if beat.isMultiple(of: 2) {
+                let bassDegree = [0, 0, 5, 7, 0, 5][(beat / 2) % 6]
+                voices.append(Voice(
+                    start: start,
+                    duration: 0.68,
+                    from: root * 0.5 * pow(2, Double(bassDegree) / 12),
+                    gain: 0.025,
+                    timbre: .rounded
+                ))
+            }
+            voices.append(Voice(
+                start: start,
+                duration: 0.07,
+                from: 1,
+                gain: beat.isMultiple(of: 2) ? 0.006 : 0.0035,
+                timbre: .noise
+            ))
+        }
+
+        for voice in voices {
+            render(voice, into: channels, frameCount: Int(frameCount),
+                   channels: channelCount, sampleRate: sampleRate)
+        }
+        musicPlayer.stop()
+        musicPlayer.volume = 0.72
+        musicPlayer.scheduleBuffer(buffer, at: nil, options: .loops)
+        musicBuffer = buffer
+        musicStyle = style
+        musicPlayer.play()
+    }
+
+    func pauseMusic() {
+        if musicPlayer.isPlaying { musicPlayer.pause() }
+    }
+
+    func resumeMusic() {
+        guard settings?.soundEnabled == true, musicBuffer != nil else { return }
+        if !engine.isRunning { try? engine.start() }
+        if !musicPlayer.isPlaying { musicPlayer.play() }
+    }
+
+    func stopMusic() {
+        musicPlayer.stop()
+        musicBuffer = nil
+        musicStyle = nil
     }
 
     func jump() {
