@@ -1,6 +1,11 @@
 #if DEVELOPER_FEATURES
 import SwiftUI
 
+private struct LevelObjectPosition {
+    let x: Double
+    let y: Double
+}
+
 struct LevelCreatorView: View {
     @ObservedObject var store: LevelCreatorStore
     let onPlay: (CustomLevelDefinition) -> Void
@@ -11,6 +16,7 @@ struct LevelCreatorView: View {
     @State private var showsVocabularyEditor = false
     @State private var vocabularyDraft = ""
     @State private var vocabularyError: String?
+    @State private var dragOrigins: [UUID: LevelObjectPosition] = [:]
 
     private let horizontalScale: CGFloat = 0.16
     private let verticalScale: CGFloat = 0.52
@@ -236,18 +242,12 @@ struct LevelCreatorView: View {
         .onTapGesture { selectedID = value.id }
         .gesture(
             DragGesture()
+                .onChanged { gesture in
+                    moveObject(object, from: value, by: gesture.translation)
+                }
                 .onEnded { gesture in
-                    object.wrappedValue.x = min(
-                        draft.finishX - 100,
-                        max(500, value.x + Double(gesture.translation.width / horizontalScale))
-                    )
-                    if supportsVerticalPosition(value.kind) {
-                        object.wrappedValue.y = min(
-                            340,
-                            max(0, value.y - Double(gesture.translation.height / verticalScale))
-                        )
-                    }
-                    selectedID = value.id
+                    moveObject(object, from: value, by: gesture.translation)
+                    dragOrigins[value.id] = nil
                 }
         )
         .accessibilityLabel("\(value.kind.title) at \(Int(value.x))")
@@ -346,6 +346,26 @@ struct LevelCreatorView: View {
         saveDraft()
         dismiss()
         onPlay(draft)
+    }
+
+    private func moveObject(
+        _ object: Binding<EditableLevelObject>,
+        from value: EditableLevelObject,
+        by translation: CGSize
+    ) {
+        let origin = dragOrigins[value.id] ?? LevelObjectPosition(x: value.x, y: value.y)
+        if dragOrigins[value.id] == nil { dragOrigins[value.id] = origin }
+        object.wrappedValue.x = min(
+            draft.finishX - 100,
+            max(500, origin.x + Double(translation.width / horizontalScale))
+        )
+        if supportsVerticalPosition(value.kind) {
+            object.wrappedValue.y = min(
+                340,
+                max(0, origin.y - Double(translation.height / verticalScale))
+            )
+        }
+        selectedID = value.id
     }
 
     private func add(_ kind: EditableLevelObject.Kind) {
