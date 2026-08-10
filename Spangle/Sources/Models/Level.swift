@@ -6,7 +6,7 @@ enum LevelItem {
     case spike(x: CGFloat)
     /// A word-coin floating above the ground.
     case coin(x: CGFloat, word: VocabWord)
-    /// A gate that quizzes the most recently collected word.
+    /// A gate that quizzes one collected, not-yet-quizzed word.
     case gate(x: CGFloat)
 }
 

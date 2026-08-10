@@ -60,5 +60,14 @@ let project = Project(
                 "DEVELOPMENT_TEAM": "6CW3378X23",
             ])
         ),
+        .target(
+            name: "SpangleTests",
+            destinations: [.iPhone, .iPad, .mac],
+            product: .unitTests,
+            bundleId: "com.spangle.app.tests",
+            deploymentTargets: .multiplatform(iOS: "17.0", macOS: "14.0"),
+            buildableFolders: ["Spangle/Tests"],
+            dependencies: [.target(name: "Spangle")]
+        ),
     ]
 )

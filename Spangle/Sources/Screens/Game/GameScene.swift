@@ -27,7 +27,7 @@ final class GameScene: SKScene {
     private var holdTime: TimeInterval = 0
     private var active = false
     private var lastUpdate: TimeInterval = 0
-    private var pendingWord: VocabWord?
+    private var quizWordQueue = QuizWordQueue()
 
     // MARK: Nodes
     private let sky = SKSpriteNode()
@@ -354,7 +354,7 @@ final class GameScene: SKScene {
                 c.collected = true
                 c.node.run(.sequence([.group([.scale(to: 1.8, duration: 0.2),
                                               .fadeOut(withDuration: 0.2)]), .removeFromParent()]))
-                pendingWord = c.word
+                quizWordQueue.collect(c.word)
                 game?.collected(c.word)
             }
         }
@@ -364,7 +364,7 @@ final class GameScene: SKScene {
         for gate in gates where !gate.passed {
             if worldX >= gate.x {
                 gate.passed = true
-                if let word = pendingWord {
+                if let word = quizWordQueue.takeRandom() {
                     // Snap safely onto the ground so resuming never drops the
                     // player mid-air into the upcoming gap.
                     playerY = 0
@@ -401,7 +401,6 @@ final class GameScene: SKScene {
     }
 
     func resumeFromGate() {
-        pendingWord = nil
         active = true
     }
 
@@ -415,7 +414,7 @@ final class GameScene: SKScene {
         onGround = true
         holding = false
         holdTime = 0
-        pendingWord = nil
+        quizWordQueue.removeAll()
         lastUpdate = 0
         active = false
         player.setAlive()
