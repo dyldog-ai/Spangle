@@ -20,4 +20,4 @@
 - [x] Created levels should be stored in iCloud and available across devices
 - [x] Move the "Tools" so they're in a vertical list on the right of the timeline view
 - [x] Remove the "New" button from the level editor detail screen
-- [ ] Level elements should actually show how big they are in the editor
+- [x] Level elements should actually show how big they are in the editor

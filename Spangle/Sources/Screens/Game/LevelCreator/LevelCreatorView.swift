@@ -412,22 +412,34 @@ struct LevelCreatorView: View {
     private func timelineObject(_ object: Binding<EditableLevelObject>) -> some View {
         let value = object.wrappedValue
         let isSelected = selectedIDs.contains(value.id)
-        return VStack(spacing: 1) {
+        let size = objectDisplaySize(value)
+        return ZStack {
+            RoundedRectangle(cornerRadius: min(7, size.height / 3))
+                .fill(objectColor(value.kind).opacity(value.kind == .gap ? 0.16 : 0.72))
             Image(systemName: value.kind.symbol)
-                .font(.system(size: isSelected ? 20 : 17, weight: .bold))
-            Text(value.kind.title)
-                .font(.system(size: 7, weight: .bold))
-                .lineLimit(1)
+                .font(.system(size: max(7, min(18, min(size.width, size.height) * 0.55)), weight: .bold))
+                .foregroundStyle(value.kind == .gap ? objectColor(value.kind) : .white)
+            if size.width > 72 {
+                Text(value.kind.title)
+                    .font(.system(size: 7, weight: .bold))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+            }
         }
-        .foregroundStyle(objectColor(value.kind))
-        .frame(width: objectDisplayWidth(value), height: 35)
-        .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 7))
+        .frame(width: size.width, height: size.height)
         .overlay {
-            RoundedRectangle(cornerRadius: 7)
-                .stroke(isSelected ? Color.storybookRed : Color.storybookInk.opacity(0.3),
-                        lineWidth: isSelected ? 3 : 1)
+            RoundedRectangle(cornerRadius: min(7, size.height / 3))
+                .stroke(
+                    isSelected ? Color.storybookRed : Color.storybookInk.opacity(0.45),
+                    style: StrokeStyle(
+                        lineWidth: isSelected ? 3 : 1,
+                        dash: value.kind == .gap ? [4, 3] : []
+                    )
+                )
         }
-        .position(x: CGFloat(value.x) * horizontalScale, y: timelineY(for: value))
+        .frame(width: max(30, size.width), height: max(30, size.height))
+        .contentShape(Rectangle())
+        .position(x: timelineX(for: value), y: timelineY(for: value))
         .onTapGesture { selectObject(value.id) }
         .gesture(
             DragGesture()
@@ -600,11 +612,12 @@ struct LevelCreatorView: View {
     }
 
     private func objectFrame(_ object: EditableLevelObject) -> CGRect {
-        CGRect(
-            x: CGFloat(object.x) * horizontalScale - objectDisplayWidth(object) / 2,
-            y: timelineY(for: object) - 17.5,
-            width: objectDisplayWidth(object),
-            height: 35
+        let size = objectDisplaySize(object)
+        return CGRect(
+            x: timelineX(for: object) - size.width / 2,
+            y: timelineY(for: object) - size.height / 2,
+            width: size.width,
+            height: size.height
         )
     }
 
@@ -682,17 +695,45 @@ struct LevelCreatorView: View {
         max(900, CGFloat(draft.finishX) * horizontalScale + 80)
     }
 
-    private func timelineY(for object: EditableLevelObject) -> CGFloat {
-        let groundY = timelineHeight - 49
-        if object.kind == .gap { return timelineHeight - 27 }
-        return groundY - CGFloat(max(0, object.y)) * verticalScale
+    private func timelineX(for object: EditableLevelObject) -> CGFloat {
+        let worldX = object.kind == .wind ? object.x + object.width / 2 : object.x
+        return CGFloat(worldX) * horizontalScale
     }
 
-    private func objectDisplayWidth(_ object: EditableLevelObject) -> CGFloat {
-        if supportsWidth(object.kind) {
-            return max(42, min(160, CGFloat(object.width) * horizontalScale))
+    private func timelineY(for object: EditableLevelObject) -> CGFloat {
+        let groundSurfaceY = timelineHeight - 38
+        let size = objectDisplaySize(object)
+        switch object.kind {
+        case .gap:
+            return groundSurfaceY
+        case .spike, .gate, .spring, .trickster, .hopper, .checkpoint, .wind:
+            return groundSurfaceY - size.height / 2
+        case .coin, .star, .flyer, .solidPlatform, .crumblingPlatform, .shield:
+            return groundSurfaceY - CGFloat(max(0, object.y)) * verticalScale
         }
-        return 58
+    }
+
+    private func objectDisplaySize(_ object: EditableLevelObject) -> CGSize {
+        let worldSize: CGSize
+        switch object.kind {
+        case .coin: worldSize = CGSize(width: 46, height: 46)
+        case .spike: worldSize = CGSize(width: 66, height: 54)
+        case .gate: worldSize = CGSize(width: 100, height: 226)
+        case .spring: worldSize = CGSize(width: 82, height: 28)
+        case .star: worldSize = CGSize(width: 54, height: 54)
+        case .trickster, .hopper: worldSize = CGSize(width: 62, height: 55)
+        case .flyer: worldSize = CGSize(width: 92, height: 55)
+        case .solidPlatform, .crumblingPlatform:
+            worldSize = CGSize(width: max(100, object.width), height: 25)
+        case .wind: worldSize = CGSize(width: max(120, object.width), height: 180)
+        case .shield: worldSize = CGSize(width: 62, height: 62)
+        case .checkpoint: worldSize = CGSize(width: 90, height: 180)
+        case .gap: worldSize = CGSize(width: max(80, object.width), height: 18)
+        }
+        return CGSize(
+            width: max(7, worldSize.width * horizontalScale),
+            height: max(7, worldSize.height * verticalScale)
+        )
     }
 
     private func supportsWidth(_ kind: EditableLevelObject.Kind) -> Bool {
