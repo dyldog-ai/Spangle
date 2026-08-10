@@ -22,5 +22,11 @@ struct CharacterDesign: Identifiable, Equatable {
         case dragon
         case aurora
         case legend
+        case isaac
+        case moonwalker
+        case stardust
+        case sleuth
+        case plumber
+        case speedster
     }
 }

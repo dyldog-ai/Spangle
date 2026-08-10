@@ -61,6 +61,12 @@ struct CharacterPortrait: View {
         case .dragon: [Color(red: 0.07, green: 0.65, blue: 0.55), Color(red: 0.28, green: 0.16, blue: 0.54), .cyan]
         case .aurora: [.purple, .cyan, .mint, .pink]
         case .legend: [.red, .orange, .yellow, .green, .cyan, .purple]
+        case .isaac: [Color(red: 0.94, green: 0.82, blue: 0.72), Color(red: 0.45, green: 0.7, blue: 0.9)]
+        case .moonwalker: [.black, Color(red: 0.28, green: 0.27, blue: 0.31), .white]
+        case .stardust: [.orange, .red, .blue]
+        case .sleuth: [Color(red: 0.62, green: 0.46, blue: 0.28), Color(red: 0.85, green: 0.74, blue: 0.5)]
+        case .plumber: [.red, Color(red: 0.08, green: 0.28, blue: 0.7)]
+        case .speedster: [Color(red: 0.04, green: 0.28, blue: 0.78), .cyan, .red]
         }
     }
 
@@ -70,7 +76,10 @@ struct CharacterPortrait: View {
         case .ocean, .astronaut: .white
         case .forest: .storybookCream
         case .dragon: .purple
-        case .aurora, .legend: .storybookInk
+        case .aurora, .legend, .moonwalker: .storybookInk
+        case .isaac: .storybookBlue
+        case .plumber: .blue
+        case .speedster: .red
         default: .storybookRed
         }
     }
@@ -89,6 +98,12 @@ struct CharacterPortrait: View {
         case .dragon: "flame.fill"
         case .aurora: "crown.fill"
         case .legend: "staroflife.fill"
+        case .isaac: "drop.fill"
+        case .moonwalker: "hat.widebrim.fill"
+        case .stardust: "bolt.fill"
+        case .sleuth: "magnifyingglass"
+        case .plumber: "wrench.adjustable.fill"
+        case .speedster: "hare.fill"
         }
     }
 
@@ -97,6 +112,9 @@ struct CharacterPortrait: View {
     }
 
     private var isPrestige: Bool {
-        design.style == .dragon || design.style == .aurora || design.style == .legend
+        switch design.style {
+        case .dragon, .aurora, .legend, .stardust, .speedster: true
+        default: false
+        }
     }
 }

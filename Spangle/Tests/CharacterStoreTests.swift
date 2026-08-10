@@ -3,6 +3,16 @@ import Testing
 @testable import Spangle
 
 struct CharacterStoreTests {
+    @Test
+    func catalogIncludesDistinctPersonalitySkins() {
+        let designs = CharacterCatalog.all
+        #expect(Set(designs.map(\.id)).count == designs.count)
+        #expect(designs.count >= 18)
+        #expect(designs.contains { $0.style == .isaac })
+        #expect(designs.contains { $0.style == .moonwalker })
+        #expect(designs.contains { $0.style == .speedster })
+    }
+
     @MainActor @Test
     func existingRatingsSeedTheInitialWallet() throws {
         let suite = "CharacterStoreTests.\(UUID().uuidString)"

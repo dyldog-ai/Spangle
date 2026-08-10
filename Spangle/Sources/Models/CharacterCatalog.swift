@@ -27,6 +27,18 @@ enum CharacterCatalog {
                         style: .aurora, rarity: "Mythic"),
         CharacterDesign(id: "legend", name: "Prismatic Legend", tagline: "The ultimate Spangle", cost: 900,
                         style: .legend, rarity: "Prestige"),
+        CharacterDesign(id: "isaac", name: "Basement Isaac", tagline: "Tears turn every trial around", cost: 180,
+                        style: .isaac, rarity: "Cult Classic"),
+        CharacterDesign(id: "moonwalker", name: "Moonwalk Maestro", tagline: "A smooth criminal of gravity", cost: 260,
+                        style: .moonwalker, rarity: "Iconic"),
+        CharacterDesign(id: "stardust", name: "Stardust Rebel", tagline: "A cosmic flash from another stage", cost: 320,
+                        style: .stardust, rarity: "Iconic"),
+        CharacterDesign(id: "sleuth", name: "Baker Street Sleuth", tagline: "The game is afoot", cost: 390,
+                        style: .sleuth, rarity: "Legendary"),
+        CharacterDesign(id: "plumber", name: "Pixel Plumber", tagline: "Pipes, jumps, and power-ups", cost: 480,
+                        style: .plumber, rarity: "Iconic"),
+        CharacterDesign(id: "speedster", name: "Cobalt Speedster", tagline: "Gotta learn fast", cost: 650,
+                        style: .speedster, rarity: "Mythic"),
     ]
 
     static let original = all[0]

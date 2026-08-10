@@ -113,9 +113,9 @@ struct CharacterShopView: View {
 
     private func rarityColor(_ design: CharacterDesign) -> Color {
         switch design.style {
-        case .dragon, .aurora: .purple
-        case .legend: .storybookRed
-        case .clockwork, .astronaut, .knight: .storybookBlue
+        case .dragon, .aurora, .stardust, .speedster: .purple
+        case .legend, .isaac: .storybookRed
+        case .clockwork, .astronaut, .knight, .moonwalker, .sleuth, .plumber: .storybookBlue
         default: .storybookGreen
         }
     }

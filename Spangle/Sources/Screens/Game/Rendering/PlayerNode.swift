@@ -11,6 +11,7 @@ final class PlayerNode: SKNode {
     private let scarf = SKShapeNode()
     private let scarfKnot = SKShapeNode(circleOfRadius: 4)
     private let belly = SKShapeNode()
+    private let smile = SKShapeNode()
     private let auraLayer = SKNode()
     private let accessoryLayer = SKNode()
     private let warmGold = SKColor(red: 1, green: 0.67, blue: 0.18, alpha: 1)
@@ -136,6 +137,7 @@ final class PlayerNode: SKNode {
             eye.strokeColor = ink
             eye.lineWidth = 1.8
             eye.position = CGPoint(x: dx, y: half * 0.25)
+            eye.zPosition = 4
             body.addChild(eye)
 
             let pupil = SKShapeNode(ellipseOf: CGSize(width: s * 0.1, height: s * 0.14))
@@ -151,7 +153,6 @@ final class PlayerNode: SKNode {
             pupil.addChild(glint)
         }
 
-        let smile = SKShapeNode()
         let smilePath = CGMutablePath()
         smilePath.move(to: CGPoint(x: -s * 0.19, y: -s * 0.08))
         smilePath.addCurve(
@@ -160,16 +161,32 @@ final class PlayerNode: SKNode {
             control2: CGPoint(x: s * 0.1, y: -s * 0.2)
         )
         smile.path = smilePath
+        smile.name = "mouth"
         smile.strokeColor = ink
         smile.lineWidth = 2.5
         smile.lineCap = .round
+        smile.zPosition = 5
         body.addChild(smile)
+
+        for direction in [-1.0, 1.0] as [CGFloat] {
+            let brow = SKShapeNode()
+            let browPath = CGMutablePath()
+            browPath.move(to: CGPoint(x: direction * s * 0.16, y: s * 0.31))
+            browPath.addLine(to: CGPoint(x: direction * s * 0.38, y: s * 0.35))
+            brow.path = browPath
+            brow.strokeColor = ink
+            brow.lineWidth = 2
+            brow.lineCap = .round
+            brow.zPosition = 5
+            body.addChild(brow)
+        }
 
         for x in [-s * 0.29, s * 0.29] {
             let cheek = SKShapeNode(ellipseOf: CGSize(width: s * 0.13, height: s * 0.065))
             cheek.fillColor = SKColor(red: 0.93, green: 0.31, blue: 0.22, alpha: 0.35)
             cheek.strokeColor = .clear
             cheek.position = CGPoint(x: x, y: -s * 0.05)
+            cheek.zPosition = 3
             body.addChild(cheek)
         }
     }
@@ -181,9 +198,11 @@ final class PlayerNode: SKNode {
             cornerHeight: s * 0.07,
             transform: nil
         )
+        scarf.name = "scarf"
         scarf.fillColor = SKColor(red: 0.88, green: 0.23, blue: 0.16, alpha: 1)
         scarf.strokeColor = ink
         scarf.lineWidth = 1.8
+        scarf.zPosition = 1
         body.addChild(scarf)
 
         scarfKnot.path = CGPath(ellipseIn: CGRect(x: -s * 0.085, y: -s * 0.085,
@@ -193,6 +212,7 @@ final class PlayerNode: SKNode {
         scarfKnot.strokeColor = ink
         scarfKnot.lineWidth = 1.5
         scarfKnot.position = CGPoint(x: s * 0.27, y: -s * 0.235)
+        scarfKnot.zPosition = 2
         body.addChild(scarfKnot)
     }
 
@@ -213,9 +233,11 @@ final class PlayerNode: SKNode {
         belly.path = CGPath(ellipseIn: CGRect(x: -s * 0.24, y: -s * 0.115,
                                                width: s * 0.48, height: s * 0.23),
                                  transform: nil)
+        belly.name = "belly"
         belly.fillColor = SKColor(red: 1, green: 0.86, blue: 0.45, alpha: 0.55)
         belly.strokeColor = .clear
-        belly.position = CGPoint(x: 0, y: -s * 0.28)
+        belly.position = CGPoint(x: 0, y: -s * 0.31)
+        belly.zPosition = 0
         body.addChild(belly)
     }
 
@@ -230,6 +252,9 @@ final class PlayerNode: SKNode {
         var secondary = SKColor(red: 1, green: 0.86, blue: 0.45, alpha: 0.55)
         var scarfColor = red
         var knotColor = SKColor(red: 1, green: 0.76, blue: 0.18, alpha: 1)
+        smile.isHidden = false
+        leftFoot.fillColor = ink
+        rightFoot.fillColor = ink
 
         switch design.style {
         case .sol:
@@ -298,6 +323,39 @@ final class PlayerNode: SKNode {
             addAura(colors: [.systemRed, .systemOrange, .systemYellow,
                              .systemGreen, .systemBlue, .systemPurple])
             addOrbitingStars()
+        case .isaac:
+            activeBodyColor = SKColor(red: 0.94, green: 0.82, blue: 0.72, alpha: 1)
+            secondary = SKColor(red: 0.78, green: 0.62, blue: 0.52, alpha: 0.28)
+            scarfColor = SKColor(red: 0.36, green: 0.58, blue: 0.72, alpha: 1)
+            smile.isHidden = true
+            addIsaacTears()
+        case .moonwalker:
+            activeBodyColor = SKColor(red: 0.18, green: 0.17, blue: 0.2, alpha: 1)
+            secondary = .white.withAlphaComponent(0.2)
+            scarfColor = .white
+            knotColor = .systemRed
+            addFedoraAndGlove()
+        case .stardust:
+            activeBodyColor = SKColor(red: 0.86, green: 0.42, blue: 0.2, alpha: 1)
+            secondary = SKColor(red: 0.2, green: 0.58, blue: 0.82, alpha: 0.48)
+            scarfColor = SKColor(red: 0.1, green: 0.46, blue: 0.74, alpha: 1)
+            addStardustFlash()
+        case .sleuth:
+            activeBodyColor = SKColor(red: 0.62, green: 0.46, blue: 0.28, alpha: 1)
+            secondary = SKColor(red: 0.86, green: 0.75, blue: 0.5, alpha: 0.46)
+            scarfColor = SKColor(red: 0.34, green: 0.16, blue: 0.1, alpha: 1)
+            addSleuthKit()
+        case .plumber:
+            activeBodyColor = SKColor(red: 0.9, green: 0.18, blue: 0.14, alpha: 1)
+            secondary = SKColor(red: 0.12, green: 0.32, blue: 0.72, alpha: 0.56)
+            scarfColor = SKColor(red: 0.08, green: 0.25, blue: 0.66, alpha: 1)
+            smile.isHidden = true
+            addPlumberGear()
+        case .speedster:
+            activeBodyColor = SKColor(red: 0.06, green: 0.32, blue: 0.78, alpha: 1)
+            secondary = SKColor(red: 0.96, green: 0.78, blue: 0.42, alpha: 0.5)
+            scarfColor = .systemRed
+            addSpeedsterSpikes()
         }
 
         body.fillColor = activeBodyColor
@@ -503,6 +561,157 @@ final class PlayerNode: SKNode {
         crown.strokeColor = ink
         crown.lineWidth = 2
         accessoryLayer.addChild(crown)
+    }
+
+    private func addIsaacTears() {
+        for x in [-characterSize * 0.155, characterSize * 0.155] {
+            let tear = SKShapeNode()
+            let path = CGMutablePath()
+            path.move(to: CGPoint(x: x, y: characterSize * 0.08))
+            path.addCurve(
+                to: CGPoint(x: x * 1.12, y: -characterSize * 0.3),
+                control1: CGPoint(x: x * 0.9, y: -characterSize * 0.02),
+                control2: CGPoint(x: x * 1.2, y: -characterSize * 0.18)
+            )
+            tear.path = path
+            tear.strokeColor = SKColor(red: 0.22, green: 0.65, blue: 0.92, alpha: 0.9)
+            tear.lineWidth = 4
+            tear.lineCap = .round
+            accessoryLayer.addChild(tear)
+        }
+        let mouth = SKShapeNode(ellipseOf: CGSize(width: characterSize * 0.18,
+                                                   height: characterSize * 0.12))
+        mouth.fillColor = ink
+        mouth.strokeColor = .clear
+        mouth.position.y = -characterSize * 0.1
+        accessoryLayer.addChild(mouth)
+    }
+
+    private func addFedoraAndGlove() {
+        let crown = SKShapeNode(rectOf: CGSize(width: characterSize * 0.62,
+                                               height: characterSize * 0.27), cornerRadius: 5)
+        crown.fillColor = .black
+        crown.strokeColor = ink
+        crown.lineWidth = 2
+        crown.position = CGPoint(x: -characterSize * 0.08, y: characterSize * 0.56)
+        crown.zRotation = -0.12
+        accessoryLayer.addChild(crown)
+        let brim = SKShapeNode(rectOf: CGSize(width: characterSize * 0.92,
+                                              height: characterSize * 0.08), cornerRadius: 3)
+        brim.fillColor = .black
+        brim.strokeColor = ink
+        brim.lineWidth = 1.5
+        brim.position.y = characterSize * 0.44
+        brim.zRotation = -0.12
+        accessoryLayer.addChild(brim)
+        let glove = SKShapeNode(circleOfRadius: characterSize * 0.12)
+        glove.fillColor = .white
+        glove.strokeColor = ink
+        glove.lineWidth = 2
+        glove.position = CGPoint(x: characterSize * 0.61, y: characterSize * 0.03)
+        accessoryLayer.addChild(glove)
+    }
+
+    private func addStardustFlash() {
+        let flash = SKShapeNode()
+        let path = CGMutablePath()
+        path.move(to: CGPoint(x: -characterSize * 0.3, y: characterSize * 0.43))
+        path.addLine(to: CGPoint(x: -characterSize * 0.05, y: characterSize * 0.14))
+        path.addLine(to: CGPoint(x: -characterSize * 0.18, y: characterSize * 0.11))
+        path.addLine(to: CGPoint(x: characterSize * 0.08, y: -characterSize * 0.2))
+        flash.path = path
+        flash.strokeColor = SKColor(red: 0.94, green: 0.16, blue: 0.22, alpha: 1)
+        flash.lineWidth = 5
+        flash.lineCap = .round
+        flash.lineJoin = .round
+        accessoryLayer.addChild(flash)
+        let halo = SKShapeNode(circleOfRadius: characterSize * 0.68)
+        halo.fillColor = .clear
+        halo.strokeColor = .systemBlue.withAlphaComponent(0.22)
+        halo.lineWidth = 3
+        auraLayer.addChild(halo)
+    }
+
+    private func addSleuthKit() {
+        let cap = SKShapeNode(ellipseOf: CGSize(width: characterSize * 0.82,
+                                                height: characterSize * 0.3))
+        cap.fillColor = SKColor(red: 0.45, green: 0.3, blue: 0.16, alpha: 1)
+        cap.strokeColor = ink
+        cap.lineWidth = 2
+        cap.position.y = characterSize * 0.52
+        accessoryLayer.addChild(cap)
+        let lens = SKShapeNode(circleOfRadius: characterSize * 0.18)
+        lens.fillColor = SKColor(red: 0.65, green: 0.9, blue: 1, alpha: 0.18)
+        lens.strokeColor = ink
+        lens.lineWidth = 3
+        lens.position = CGPoint(x: characterSize * 0.5, y: -characterSize * 0.02)
+        accessoryLayer.addChild(lens)
+        let handle = SKShapeNode(rectOf: CGSize(width: 4, height: characterSize * 0.38), cornerRadius: 2)
+        handle.fillColor = ink
+        handle.strokeColor = .clear
+        handle.position = CGPoint(x: characterSize * 0.64, y: -characterSize * 0.25)
+        handle.zRotation = -0.55
+        accessoryLayer.addChild(handle)
+    }
+
+    private func addPlumberGear() {
+        let cap = SKShapeNode(ellipseOf: CGSize(width: characterSize * 0.78,
+                                                height: characterSize * 0.28))
+        cap.fillColor = .systemRed
+        cap.strokeColor = ink
+        cap.lineWidth = 2
+        cap.position.y = characterSize * 0.54
+        accessoryLayer.addChild(cap)
+        let badge = SKShapeNode(circleOfRadius: characterSize * 0.09)
+        badge.fillColor = .white
+        badge.strokeColor = ink
+        badge.lineWidth = 1.3
+        badge.position.y = characterSize * 0.57
+        accessoryLayer.addChild(badge)
+        let star = SKLabelNode(text: "★")
+        star.fontSize = characterSize * 0.12
+        star.fontColor = .systemRed
+        star.verticalAlignmentMode = .center
+        star.position.y = characterSize * 0.57
+        accessoryLayer.addChild(star)
+        for direction in [-1.0, 1.0] as [CGFloat] {
+            let moustache = SKShapeNode(ellipseOf: CGSize(width: characterSize * 0.26,
+                                                          height: characterSize * 0.12))
+            moustache.fillColor = ink
+            moustache.strokeColor = .clear
+            moustache.position = CGPoint(x: direction * characterSize * 0.1,
+                                         y: -characterSize * 0.08)
+            moustache.zRotation = direction * -0.18
+            accessoryLayer.addChild(moustache)
+        }
+        let mouth = SKShapeNode(ellipseOf: CGSize(width: characterSize * 0.12,
+                                                   height: characterSize * 0.06))
+        mouth.fillColor = ink
+        mouth.strokeColor = .clear
+        mouth.position.y = -characterSize * 0.17
+        accessoryLayer.addChild(mouth)
+    }
+
+    private func addSpeedsterSpikes() {
+        for index in 0..<5 {
+            let spike = SKShapeNode()
+            let path = CGMutablePath()
+            let y = characterSize * (0.42 - CGFloat(index) * 0.19)
+            path.move(to: CGPoint(x: -characterSize * 0.32, y: y))
+            path.addLine(to: CGPoint(x: -characterSize * (0.72 + CGFloat(index) * 0.06),
+                                     y: y + characterSize * 0.13))
+            path.addLine(to: CGPoint(x: -characterSize * 0.38,
+                                     y: y - characterSize * 0.12))
+            path.closeSubpath()
+            spike.path = path
+            spike.fillColor = SKColor(red: 0.04, green: 0.28, blue: 0.75, alpha: 1)
+            spike.strokeColor = ink
+            spike.lineWidth = 1.5
+            accessoryLayer.addChild(spike)
+        }
+        for foot in [leftFoot, rightFoot] {
+            foot.fillColor = .systemRed
+        }
     }
 
     private func addAura(colors: [SKColor]) {
