@@ -28,17 +28,26 @@ final class GameFeedback {
     private func play(frequency: Double, duration: Double, amplitude: Float) {
         guard settings?.soundEnabled == true else { return }
         if !engine.isRunning { try? engine.start() }
-        let sampleRate = 44_100.0
+
+        // Scheduled buffers must exactly match the player's negotiated output
+        // format. A hard-coded mono buffer crashes on stereo device routes.
+        let format = player.outputFormat(forBus: 0)
+        let sampleRate = format.sampleRate
+        let channelCount = Int(format.channelCount)
+        guard sampleRate > 0, channelCount > 0 else { return }
         let frameCount = AVAudioFrameCount(sampleRate * duration)
-        guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1),
-              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount),
-              let samples = buffer.floatChannelData?[0] else { return }
+        guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frameCount),
+              let channels = buffer.floatChannelData else { return }
         buffer.frameLength = frameCount
+
         for frame in 0..<Int(frameCount) {
             let progress = Double(frame) / Double(frameCount)
             let envelope = Float(sin(.pi * progress))
-            samples[frame] = sin(Float(frame) * Float(2 * Double.pi * frequency / sampleRate))
+            let sample = sin(Float(frame) * Float(2 * Double.pi * frequency / sampleRate))
                 * amplitude * envelope
+            for channel in 0..<channelCount {
+                channels[channel][frame] = sample
+            }
         }
         player.scheduleBuffer(buffer, at: nil, options: .interrupts)
         player.play()

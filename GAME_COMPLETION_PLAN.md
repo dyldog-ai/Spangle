@@ -109,7 +109,7 @@ A 1.0 candidate is ready when:
 - [x] Bidirectional four-choice questions, correction feedback, final-quiz coverage, and adaptive review sessions.
 - [x] Persistent per-word exposure/answer/mastery/due history and a learning-progress dashboard.
 - [x] First-run tutorial, settings/reset confirmation, high contrast, reduced SwiftUI motion, and accessibility labels/values.
-- [x] Updated product documentation and 16 model tests covering deterministic generation, safety mechanics, queues, questions, identity, persistence, mastery ordering, reset, and results.
+- [x] Updated product documentation and 17 tests covering audio-route safety, deterministic generation, safety mechanics, queues, questions, identity, persistence, mastery ordering, reset, and results.
 - [x] Tuist regeneration, macOS tests/build, iOS Simulator build/launch, and signed physical-device installation.
 
 ### Explicit post-1.0 integrations
