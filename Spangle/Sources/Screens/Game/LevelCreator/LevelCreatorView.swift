@@ -20,7 +20,6 @@ struct LevelCreatorView: View {
     @State private var vocabularyError: String?
     @State private var dragOrigins: [UUID: LevelObjectPosition] = [:]
     @State private var loadedInitialLevel = false
-    @State private var levelPendingDeletion: CustomLevelDefinition?
 
     private let horizontalScale: CGFloat = 0.16
     private var isCompactEditor: Bool { verticalSizeClass == .compact }
@@ -54,40 +53,11 @@ struct LevelCreatorView: View {
         .sheet(isPresented: $showsVocabularyEditor) {
             vocabularyEditor
         }
-        .confirmationDialog(
-            "Delete \(levelPendingDeletion?.title ?? "this level")?",
-            isPresented: deletionConfirmation,
-            titleVisibility: .visible
-        ) {
-            Button("Delete level", role: .destructive, action: deletePendingLevel)
-            Button("Cancel", role: .cancel) { levelPendingDeletion = nil }
-        } message: {
-            Text("This cannot be undone.")
-        }
         .onAppear(perform: loadInitialLevelIfNeeded)
     }
 
     private var creatorActionBar: some View {
         HStack(spacing: isCompactEditor ? 7 : 10) {
-            Menu {
-                if store.levels.isEmpty {
-                    Text("No saved levels")
-                }
-                ForEach(store.levels) { level in
-                    Menu("\(level.emoji) \(level.title)") {
-                        Button("Open", systemImage: "pencil") {
-                            draft = level
-                            savedDefinition = level
-                            selectedID = nil
-                        }
-                        Button("Delete", systemImage: "trash", role: .destructive) {
-                            levelPendingDeletion = level
-                        }
-                    }
-                }
-            } label: {
-                actionLabel("Saved Levels", systemImage: "folder.fill")
-            }
             Button {
                 draft = .starter
                 draft.id = UUID()
@@ -382,25 +352,6 @@ struct LevelCreatorView: View {
                 dismiss()
             }
         }
-    }
-
-    private var deletionConfirmation: Binding<Bool> {
-        Binding(
-            get: { levelPendingDeletion != nil },
-            set: { if !$0 { levelPendingDeletion = nil } }
-        )
-    }
-
-    private func deletePendingLevel() {
-        guard let level = levelPendingDeletion else { return }
-        store.delete(level)
-        if draft.id == level.id {
-            draft = .starter
-            draft.id = UUID()
-            savedDefinition = nil
-            selectedID = nil
-        }
-        levelPendingDeletion = nil
     }
 
     private func loadInitialLevelIfNeeded() {

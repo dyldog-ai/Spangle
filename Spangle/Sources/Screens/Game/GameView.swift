@@ -87,17 +87,17 @@ struct GameView: View {
         #if DEVELOPER_FEATURES
             #if os(iOS)
             .fullScreenCover(isPresented: $showsLevelCreator) {
-                LevelCreatorView(
+                LevelCreatorLibraryView(
                     store: levelCreatorStore,
-                    initialLevelID: editingCustomLevelID,
+                    initialEditorLevelID: editingCustomLevelID,
                     onPlay: playFromLevelCreator
                 )
             }
             #else
             .sheet(isPresented: $showsLevelCreator) {
-                LevelCreatorView(
+                LevelCreatorLibraryView(
                     store: levelCreatorStore,
-                    initialLevelID: editingCustomLevelID,
+                    initialEditorLevelID: editingCustomLevelID,
                     onPlay: playFromLevelCreator
                 )
             }
