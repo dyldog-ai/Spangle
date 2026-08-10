@@ -10,6 +10,6 @@
 - [x] The character skins view isn't showing the skins as they actually are when you're playing. It should show the full proper skin you see when you're playing the game
 - [ ] Level editor
     - [x] Add duplicate tool
-    - [ ] Tapping background should clear selection
+    - [x] Tapping background should clear selection
     - [ ] On Mac, should be able to just drag to select multiple, no need for tool button
     - [ ] I still see the other views when I'm dismissing the game view from the level editor screen. Split the game view out into its own view so this doesn't happen

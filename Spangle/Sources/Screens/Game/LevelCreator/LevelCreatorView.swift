@@ -390,6 +390,8 @@ struct LevelCreatorView: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 18))
+        .contentShape(Rectangle())
+        .onTapGesture(perform: clearSelection)
     }
 
     private var finishMarker: some View {
