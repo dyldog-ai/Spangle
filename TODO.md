@@ -8,7 +8,7 @@
 - [x] Actually, I liked it better without the delay after quizzes
 - [x] Word orders (for coins and quizzes) should be randomised
 - [x] Character sometimes disappears after restarting after dying
-- [ ] Sometimes lose the ability to jump by clicking (space still works)
+- [x] Sometimes lose the ability to jump by clicking (space still works)
 - [ ] Top of quiz flags and final flag are cut off on iPhone
 - [ ] Word review should still be a regular game play, not just the quiz bit
 - [ ] Mid-level flags should not overlap word coins

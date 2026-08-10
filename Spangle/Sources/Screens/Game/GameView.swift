@@ -10,6 +10,7 @@ struct GameView: View {
     @State private var showsSettings = false
     @State private var showsProgress = false
     @State private var showsCharacters = false
+    @State private var jumpPressActive = false
 
     var body: some View {
         #if os(iOS)
@@ -30,6 +31,10 @@ struct GameView: View {
                 .ignoresSafeArea()
                 .contrast(model.settings.highContrast ? 1.25 : 1)
                 .accessibilityHidden(true)
+
+            if model.phase == .playing {
+                gameplayInput
+            }
 
             if model.phase != .menu {
                 hud
@@ -66,6 +71,29 @@ struct GameView: View {
         #if os(macOS)
         .frame(minWidth: 720, minHeight: 405)
         #endif
+    }
+
+    private var gameplayInput: some View {
+        Color.clear
+            .contentShape(Rectangle())
+            .ignoresSafeArea()
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        guard !jumpPressActive else { return }
+                        jumpPressActive = true
+                        model.scene.jumpBegan()
+                    }
+                    .onEnded { _ in
+                        jumpPressActive = false
+                        model.scene.jumpEnded()
+                    }
+            )
+            .onDisappear {
+                jumpPressActive = false
+                model.scene.jumpEnded()
+            }
+            .accessibilityHidden(true)
     }
 
     private var hud: some View {
@@ -148,6 +176,7 @@ struct GameView: View {
             }
             .animation(model.settings.reducedMotion ? nil : .spring, value: model.toast)
             .accessibilityElement(children: .combine)
+            .allowsHitTesting(false)
         }
     }
 
