@@ -17,4 +17,7 @@
 - [x] Generating the word list from a prompt shouldn't just put words in the manual list. The words should be generated dynamically, like the other levels with generated word lists
 - [x] Number of words generated should be defined by how many coins are in the level
 - [x] Allow selecting multiple elements at once (by clicking and dragging to create a rectangle) so they can be moved or deleted together
-- [ ] Created levels should be stored in iCloud and available across devices
+- [x] Created levels should be stored in iCloud and available across devices
+- [ ] Move the "Tools" so they're in a vertical list on the right of the timeline view
+- [ ] Remove the "New" button from the level editor detail screen
+- [ ] Level elements should actually show how big they are in the editor

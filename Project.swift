@@ -35,6 +35,7 @@ let developerEntitlements: [String: Plist.Value] = [
         .string(qyayICloudContainer),
         .string(queKitICloudContainer),
     ],
+    "com.apple.developer.ubiquity-kvstore-identifier": "$(TeamIdentifierPrefix)com.spangle.app.dev",
 ]
 
 let commonSettings: SettingsDictionary = [
