@@ -1,4 +1,12 @@
+import Foundation
 import SwiftUI
+
+struct CustomLevelMenuItem: Identifiable, Equatable {
+    let id: UUID
+    let title: String
+    let emoji: String
+    let wordCount: Int
+}
 
 /// Main menu with campaign, challenge modes, imported lists, and learning tools.
 struct MenuView: View {
@@ -12,6 +20,8 @@ struct MenuView: View {
     let onDaily: () -> Void
     let onMarathon: () -> Void
     let onReview: () -> Void
+    let customLevels: [CustomLevelMenuItem]
+    let onCustomLevel: (UUID) -> Void
     let starBalance: Int
     let selectedCharacter: CharacterDesign
     let onCharacters: () -> Void
@@ -32,6 +42,9 @@ struct MenuView: View {
                 ScrollView(.vertical) {
                     VStack(alignment: .leading, spacing: 20) {
                         challengeModes
+                        if !customLevels.isEmpty {
+                            customLevelSection
+                        }
                         levelSection(
                             title: "Campaign",
                             items: Array(themes.prefix(Campaign.themes.count).enumerated())
@@ -178,6 +191,53 @@ struct MenuView: View {
             }
         }
         .buttonStyle(.plain)
+    }
+
+    private var customLevelSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("My Levels")
+                .font(.title2.bold())
+                .foregroundStyle(Color.storybookPaper)
+                .shadow(color: .storybookInk.opacity(0.45), radius: 0, y: 2)
+            LazyVGrid(columns: columns, alignment: .center, spacing: 14) {
+                ForEach(customLevels) { level in
+                    Button { onCustomLevel(level.id) } label: {
+                        VStack(spacing: 6) {
+                            Text(level.emoji).font(.system(size: 40))
+                            Text("Custom Level")
+                                .font(.caption.bold())
+                                .foregroundStyle(.white.opacity(0.9))
+                            Text(level.title)
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                                .multilineTextAlignment(.center)
+                                .lineLimit(2)
+                            Text("\(level.wordCount) words")
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.85))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(10)
+                        .background {
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(LinearGradient(
+                                    colors: [.storybookBlue, .storybookGreen],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ))
+                                .shadow(color: .storybookInk.opacity(0.3), radius: 0, y: 5)
+                        }
+                        .overlay(RoundedRectangle(cornerRadius: 20)
+                            .strokeBorder(Color.storybookPaper.opacity(0.88), lineWidth: 4)
+                            .padding(2))
+                        .overlay(RoundedRectangle(cornerRadius: 20)
+                            .strokeBorder(Color.storybookInk.opacity(0.48), lineWidth: 2))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Play custom level \(level.title), \(level.wordCount) words")
+                }
+            }
+        }
     }
 
     private func levelSection(title: String, items: [(offset: Int, element: Theme)]) -> some View {

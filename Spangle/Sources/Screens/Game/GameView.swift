@@ -202,6 +202,23 @@ struct GameView: View {
         }
     }
 
+    private var customLevelMenuItems: [CustomLevelMenuItem] {
+        #if DEVELOPER_FEATURES
+        levelCreatorStore.levels.map {
+            CustomLevelMenuItem(id: $0.id, title: $0.title, emoji: $0.emoji, wordCount: $0.words.count)
+        }
+        #else
+        []
+        #endif
+    }
+
+    private func playCustomLevel(id: UUID) {
+        #if DEVELOPER_FEATURES
+        guard let level = levelCreatorStore.levels.first(where: { $0.id == id }) else { return }
+        model.playCustomLevel(level)
+        #endif
+    }
+
     private func openLevelCreator() {
         #if DEVELOPER_FEATURES
         showsLevelCreator = true
@@ -221,6 +238,8 @@ struct GameView: View {
                 onDaily: model.startDailyChallenge,
                 onMarathon: model.startMarathon,
                 onReview: model.startReview,
+                customLevels: customLevelMenuItems,
+                onCustomLevel: playCustomLevel,
                 starBalance: model.characters.starBalance,
                 selectedCharacter: model.characters.selected,
                 onCharacters: { showsCharacters = true },
