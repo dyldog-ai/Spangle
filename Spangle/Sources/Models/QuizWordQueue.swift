@@ -2,6 +2,14 @@
 struct QuizWordQueue {
     private(set) var words: [VocabWord] = []
 
+    init(words: [VocabWord] = []) {
+        for word in words {
+            collect(word)
+        }
+    }
+
+    var count: Int { words.count }
+
     mutating func collect(_ word: VocabWord) {
         guard !words.contains(where: { $0.id == word.id }) else { return }
         words.append(word)

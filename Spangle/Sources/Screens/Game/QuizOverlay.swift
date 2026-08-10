@@ -4,13 +4,14 @@ import SwiftUI
 struct QuizOverlay: View {
     let word: VocabWord
     let options: [String]
+    let heading: String
     let onPick: (String) -> Void
 
     var body: some View {
         ZStack {
             Color.black.opacity(0.55).ignoresSafeArea()
             VStack(spacing: 20) {
-                Text("What does this mean?")
+                Text(heading)
                     .font(.headline)
                     .foregroundStyle(.secondary)
                 Text(word.spanish)

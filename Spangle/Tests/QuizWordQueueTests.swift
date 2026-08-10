@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Spangle
 
@@ -16,6 +17,24 @@ struct QuizWordQueueTests {
         #expect([first.id, second.id].contains(quizzed.id))
         #expect(queue.words.count == 1)
         #expect(queue.words[0].id != quizzed.id)
+    }
+
+    @Test
+    func finalQuizQueueContainsEveryLevelWordExactlyOnce() {
+        let words = [
+            VocabWord(spanish: "uno", english: "one"),
+            VocabWord(spanish: "dos", english: "two"),
+            VocabWord(spanish: "tres", english: "three"),
+        ]
+        var queue = QuizWordQueue(words: words)
+        var quizzedIDs: Set<UUID> = []
+
+        while let word = queue.takeRandom() {
+            quizzedIDs.insert(word.id)
+        }
+
+        #expect(quizzedIDs == Set(words.map(\.id)))
+        #expect(queue.count == 0)
     }
 
     @Test

@@ -11,7 +11,7 @@ final class GameViewModel: ObservableObject {
         case listError(message: String)
         case intro(level: Int, theme: Theme)
         case playing
-        case quiz(word: VocabWord, options: [String])
+        case quiz(word: VocabWord, options: [String], heading: String)
         case gameOver(reason: String)
         case levelComplete(nextTheme: Theme)
         case campaignComplete
@@ -32,6 +32,8 @@ final class GameViewModel: ObservableObject {
     private let wordListStore: WordListStore
     private let generator: FoundationModelsWordListGenerator
     private var generationTask: Task<Void, Never>?
+    private var finalQuizQueue = QuizWordQueue()
+    private var isFinalQuizActive = false
 
     private var theme: Theme { themes[levelIndex] }
     var currentThemeName: String { themes.indices.contains(levelIndex) ? theme.name : "" }
@@ -128,6 +130,8 @@ final class GameViewModel: ObservableObject {
         wordsLearned = 0
         distance = 0
         toast = nil
+        finalQuizQueue.removeAll()
+        isFinalQuizActive = false
         scene.load(words: theme.words, difficulty: .forLevel(index), skin: .forLevel(index))
         phase = .intro(level: index + 1, theme: theme)
     }
@@ -161,7 +165,12 @@ final class GameViewModel: ObservableObject {
     }
 
     func presentQuiz(for word: VocabWord) {
-        phase = .quiz(word: word, options: theme.quiz(for: word))
+        isFinalQuizActive = false
+        phase = .quiz(
+            word: word,
+            options: theme.quiz(for: word),
+            heading: "What does this mean?"
+        )
     }
 
     func died(reason: String) {
@@ -169,6 +178,25 @@ final class GameViewModel: ObservableObject {
     }
 
     func finished() {
+        isFinalQuizActive = true
+        finalQuizQueue = QuizWordQueue(words: theme.words)
+        presentNextFinalQuiz()
+    }
+
+    private func presentNextFinalQuiz() {
+        guard let word = finalQuizQueue.takeRandom() else {
+            completeLevel()
+            return
+        }
+        phase = .quiz(
+            word: word,
+            options: theme.quiz(for: word),
+            heading: "Final quiz · \(finalQuizQueue.count + 1) left"
+        )
+    }
+
+    private func completeLevel() {
+        isFinalQuizActive = false
         if levelIndex < Campaign.themes.count {
             unlock(levelIndex + 1)
         }
@@ -186,10 +214,14 @@ final class GameViewModel: ObservableObject {
     // MARK: - Called by the UI
 
     func answer(_ english: String) {
-        guard case let .quiz(word, _) = phase else { return }
+        guard case let .quiz(word, _, _) = phase else { return }
         if english == word.english {
-            phase = .playing
-            scene.resumeFromGate()
+            if isFinalQuizActive {
+                presentNextFinalQuiz()
+            } else {
+                phase = .playing
+                scene.resumeFromGate()
+            }
         } else {
             phase = .gameOver(reason: "«\(word.spanish)» means “\(word.english)”")
         }
@@ -199,6 +231,8 @@ final class GameViewModel: ObservableObject {
         wordsLearned = 0
         distance = 0
         toast = nil
+        finalQuizQueue.removeAll()
+        isFinalQuizActive = false
         phase = .playing
         scene.restart()
         scene.begin()

@@ -104,8 +104,8 @@ struct GameView: View {
                 action: model.startLevel,
                 secondary: ("Menu", model.goToMenu)
             )
-        case let .quiz(word, options):
-            QuizOverlay(word: word, options: options, onPick: model.answer)
+        case let .quiz(word, options, heading):
+            QuizOverlay(word: word, options: options, heading: heading, onPick: model.answer)
         case let .gameOver(reason):
             MessageOverlay(
                 title: "¡Ay!",
