@@ -50,7 +50,7 @@ developerSettings["SWIFT_ACTIVE_COMPILATION_CONDITIONS"] = "$(inherited) DEVELOP
 let project = Project(
     name: "Spangle",
     packages: [
-        .local(path: "../QueKit"),
+        .local(path: "../Que/QueKit"),
         .local(path: "../QYayKit"),
     ],
     targets: [
